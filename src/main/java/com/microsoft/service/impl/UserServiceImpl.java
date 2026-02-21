@@ -296,8 +296,8 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
                 user.setPassword(DigestUtils.md5Hex(user.getPassword()));
                 return user;
             }).toList();
-            List<BatchResult> insert = userMapper.insert(list);
-            if (insert.isEmpty()) {
+            List<BatchResult> batchResults = userMapper.insert(list);
+            if (batchResults.isEmpty()) {
                 throw new BusinessException(ErrorCode.DATABASE_ERROR, "导入失败");
             }
             List<UserVO> userVOList = getUserVO(list);
@@ -322,6 +322,14 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             return new ArrayList<>();
         }
         return userList.stream().map(this::getUserVO).toList();
+    }
+
+    /**
+     * 根据用户id判断用户是否是管理员
+     */
+    @Override
+    public Boolean isAdmin(Long userId) {
+        return userId > 0 && UserRoleEnum.ADMIN_ROLE.getValue().equals(userMapper.selectById(userId).getRole());
     }
 
 }

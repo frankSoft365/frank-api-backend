@@ -67,10 +67,19 @@
             <version>3.0.5</version>
             <scope>test</scope>
         </dependency>
+        <!-- MyBatis Plus 核心依赖 -->
+        <!-- Source: https://mvnrepository.com/artifact/com.baomidou/mybatis-plus-boot-starter -->
         <dependency>
             <groupId>com.baomidou</groupId>
-            <artifactId>mybatis-plus-spring-boot3-starter</artifactId>
-            <version>3.5.15</version>
+            <artifactId>mybatis-plus-boot-starter</artifactId>
+            <version>3.5.14</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- 3.5.9+ 版本必须额外引入的分页插件依赖 -->
+        <dependency>
+            <groupId>com.baomidou</groupId>
+            <artifactId>mybatis-plus-jsqlparser</artifactId>
+            <version>3.5.14</version>
         </dependency>
         <!-- Source: https://mvnrepository.com/artifact/junit/junit -->
         <dependency>

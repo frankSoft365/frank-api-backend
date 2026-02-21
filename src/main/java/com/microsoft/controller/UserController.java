@@ -15,7 +15,6 @@ import com.microsoft.model.vo.UserVO;
 import com.microsoft.service.UserService;
 import com.microsoft.utils.CurrentHold;
 import jakarta.annotation.Resource;
-import jakarta.servlet.http.HttpServletRequest;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.BeanUtils;
@@ -77,15 +76,14 @@ public class UserController {
      * 用户编辑个人信息 只能编辑 用户名 性别 电话 头像 邮箱
      */
     @PutMapping("/update")
-    public Result<Void> updateUserInfo(@RequestBody UserUpdateRequest userInfoToUpdate, HttpServletRequest request) {
-        // 只能更改自己的用户信息
+    public Result<Void> updateUserInfo(@RequestBody UserUpdateRequest userInfoToUpdate) {
         if (userInfoToUpdate == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无法获取更新后用户信息");
         }
         Long currentId = CurrentHold.getCurrentId();
         User user = new User();
-        user.setId(currentId);
         BeanUtils.copyProperties(userInfoToUpdate, user);
+        user.setId(currentId);
         boolean update = userService.updateById(user);
         if (!update) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "更新用户信息失败");

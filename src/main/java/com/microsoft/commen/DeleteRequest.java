@@ -2,8 +2,6 @@ package com.microsoft.commen;
 
 import lombok.Data;
 
-import java.io.Serializable;
-
 /**
  * 删除请求
  */

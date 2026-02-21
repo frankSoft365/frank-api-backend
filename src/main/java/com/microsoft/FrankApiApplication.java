@@ -6,10 +6,10 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 @MapperScan("com.microsoft.mapper")
-public class UserCenterApplication {
+public class FrankApiApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(UserCenterApplication.class, args);
+        SpringApplication.run(FrankApiApplication.class, args);
     }
 
 }
