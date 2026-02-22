@@ -2,14 +2,15 @@ package com.microsoft.controller;
 
 import com.microsoft.commen.Result;
 import com.microsoft.utils.AvatarUtils;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.Objects;
 
+@Tag(name = "头像上传模块", description = "头像上传接口")
 @Slf4j
 @RestController
 public class UploadController {

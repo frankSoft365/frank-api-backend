@@ -5,6 +5,9 @@ import org.springframework.boot.autoconfigure.jackson.Jackson2ObjectMapperBuilde
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+/**
+ * 将Long类型转化为String 防止丢失精度
+ */
 @Configuration
 public class JacksonConfig {
     @Bean

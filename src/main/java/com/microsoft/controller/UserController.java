@@ -14,6 +14,7 @@ import com.microsoft.model.vo.UserLoginVO;
 import com.microsoft.model.vo.UserVO;
 import com.microsoft.service.UserService;
 import com.microsoft.utils.CurrentHold;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
@@ -25,6 +26,7 @@ import java.util.List;
 
 import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 
+@Tag(name = "用户模块", description = "用户的增删改查接口")
 @Slf4j
 @RestController
 @RequestMapping("/user")

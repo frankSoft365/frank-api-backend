@@ -13,6 +13,7 @@ import com.microsoft.model.entity.InterfaceInfo;
 import com.microsoft.model.vo.InterfaceInfoVO;
 import com.microsoft.service.InterfaceInfoService;
 import com.microsoft.utils.CurrentHold;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.*;
 
 import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 
+@Tag(name = "接口信息模块", description = "接口信息的增删改查接口")
 @Slf4j
 @RestController
 @RequestMapping("/interfaceInfo")
