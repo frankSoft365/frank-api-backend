@@ -65,6 +65,19 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         if (StringUtils.isNotBlank(description) && description.length() > 256) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "接口描述过长！");
         }
+        // 校验 URL 唯一性
+        if (StringUtils.isNotBlank(url)) {
+            QueryWrapper<InterfaceInfo> queryWrapper = new QueryWrapper<>();
+            queryWrapper.eq("url", url);
+            // 修改时排除当前记录
+            if (!add && interfaceInfo.getId() != null) {
+                queryWrapper.ne("id", interfaceInfo.getId());
+            }
+            InterfaceInfo existingInterface = this.getOne(queryWrapper);
+            if (existingInterface != null) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "接口请求路径已存在，不允许重复添加！");
+            }
+        }
     }
 
     @Override
@@ -120,7 +133,7 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         if (CollectionUtils.isEmpty(interfaceInfoList)) {
             return interfaceInfoVOPage;
         }
-        // 先查处所需的创建人
+        // 先查出所需的创建人
         Set<Long> neededUserId = interfaceInfoList.stream().map(InterfaceInfo::getUserId).collect(Collectors.toSet());
         Map<Long, List<User>> neededUser = userMapper.selectBatchIds(neededUserId).stream().collect(Collectors.groupingBy(User::getId));
         List<InterfaceInfoVO> interfaceInfoVOList = interfaceInfoList.stream().map(item -> {
