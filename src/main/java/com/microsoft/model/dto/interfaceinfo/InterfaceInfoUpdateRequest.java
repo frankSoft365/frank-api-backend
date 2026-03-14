@@ -17,6 +17,4 @@ public class InterfaceInfoUpdateRequest {
     private String description;
     // 修改接口的请求方法
     private String method;
-    // 修改接口的状态 比如状态从关闭到打开
-    private Integer status;
 }

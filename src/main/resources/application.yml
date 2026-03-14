@@ -35,3 +35,10 @@ avatar:
     max-height: 800 # 最大高度
     quality: 0.7 # 压缩质量（0-1）
     allowed-types: jpg,jpeg,png # 允许的文件类型
+# frank-api-client 配置
+frank:
+  api:
+    client:
+      accessKeyId: 20229291381rUATJx
+      accessKeySecret: Pwc4dS3eCXT6aWGBKBCXFTJuSAAKBzut
+      baseUrl: http://localhost:8123

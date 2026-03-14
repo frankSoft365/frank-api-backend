@@ -6,8 +6,10 @@ import com.microsoft.commen.DeleteRequest;
 import com.microsoft.commen.ErrorCode;
 import com.microsoft.commen.Result;
 import com.microsoft.exception.BusinessException;
+import com.microsoft.frankapisdk.client.FrankApiClient;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoAddRequest;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
+import com.microsoft.model.dto.interfaceinfo.InterfaceInfoReleaseOrOfflineRequest;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.microsoft.model.entity.InterfaceInfo;
 import com.microsoft.model.vo.InterfaceInfoVO;
@@ -32,6 +34,10 @@ public class InterfaceInfoController {
     @Resource
     private InterfaceInfoService interfaceInfoService;
 
+    // 用于校验接口可调用性
+    @Resource
+    private FrankApiClient frankApiClient;
+
     /**
      * 添加一个接口
      */
@@ -44,7 +50,7 @@ public class InterfaceInfoController {
         InterfaceInfo interfaceInfo = new InterfaceInfo();
         BeanUtils.copyProperties(addRequest, interfaceInfo);
         // 校验
-        interfaceInfoService.validInterfaceInfo(interfaceInfo, true);
+        interfaceInfoService.validInterfaceInfo(interfaceInfo, false);
         Long userId = CurrentHold.getCurrentId();
         interfaceInfo.setUserId(userId);
         interfaceInfoService.save(interfaceInfo);
@@ -84,7 +90,7 @@ public class InterfaceInfoController {
         }
         InterfaceInfo interfaceInfo = new InterfaceInfo();
         BeanUtils.copyProperties(updateRequest, interfaceInfo);
-        interfaceInfoService.validInterfaceInfo(interfaceInfo, false);
+        interfaceInfoService.validInterfaceInfo(interfaceInfo, true);
         // 判断是否存在接口
         InterfaceInfo byId = interfaceInfoService.getById(interfaceInfo.getId());
         if (byId == null) {
@@ -98,9 +104,60 @@ public class InterfaceInfoController {
     }
 
     /**
+     * 发布接口
+     */
+    @PostMapping("/release")
+    @AuthCheck(mustRole = ADMIN_ROLE)
+    public Result<Void> releaseInterface(@RequestBody InterfaceInfoReleaseOrOfflineRequest releaseRequest) {
+        if (releaseRequest == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "找不到请求");
+        }
+        // 校验接口是否存在
+        Long interfaceId = releaseRequest.getId();
+        InterfaceInfo interfaceInfo = interfaceInfoService.getById(interfaceId);
+        if (interfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "不存在接口");
+        }
+        // 校验接口是否能够请求
+        if (!frankApiClient.testConnection()) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口连接异常，无法发布");
+        }
+        // 修改接口状态为 1
+        interfaceInfo.setStatus(1);
+        boolean updateResult = interfaceInfoService.updateById(interfaceInfo);
+        if (!updateResult) {
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, "发布失败！");
+        }
+        return Result.success();
+    }
+
+    /**
+     * 下线接口
+     */
+    @PostMapping("/offline")
+    @AuthCheck(mustRole = ADMIN_ROLE)
+    public Result<Void> offlineInterface(@RequestBody InterfaceInfoReleaseOrOfflineRequest offlineRequest) {
+        if (offlineRequest == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "找不到请求");
+        }
+        // 校验接口是否存在
+        Long interfaceId = offlineRequest.getId();
+        InterfaceInfo interfaceInfo = interfaceInfoService.getById(interfaceId);
+        if (interfaceInfo == null) {
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "不存在接口");
+        }
+        // 修改接口状态为 0
+        interfaceInfo.setStatus(0);
+        boolean updateResult = interfaceInfoService.updateById(interfaceInfo);
+        if (!updateResult) {
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, "下线失败！");
+        }
+        return Result.success();
+    }
+
+    /**
      * 查询接口 根据接口id查询回显
      */
-    @AuthCheck(mustRole = ADMIN_ROLE)
     @GetMapping("/get/vo")
     public Result<InterfaceInfoVO> getInterfaceInfoVOById(Long id) {
         if (id <= 0) {

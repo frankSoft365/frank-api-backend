@@ -10,9 +10,9 @@ import com.microsoft.model.vo.InterfaceInfoVO;
 public interface InterfaceInfoService extends IService<InterfaceInfo> {
 
     /**
-     * 添加接口时校验字段合法
+     * 添加和更新接口信息时校验字段合法
      */
-    void validInterfaceInfo(InterfaceInfo interfaceInfo, Boolean add);
+    void validInterfaceInfo(InterfaceInfo interfaceInfo, boolean update);
 
     /**
      * 获取接口VO

@@ -1,6 +1,8 @@
 package com.microsoft;
 
-import com.microsoft.model.enums.UserRoleEnum;
+import com.microsoft.frankapisdk.client.FrankApiClient;
+import com.microsoft.frankapisdk.commen.BaseApiResponse;
+import jakarta.annotation.Resource;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
 
@@ -8,9 +10,12 @@ import java.util.Arrays;
 
 @SpringBootTest
 public class FrankApiApplicationTests {
-    @Test
-    public void testEnum() {
-        System.out.println((Arrays.stream(UserRoleEnum.values()).map(UserRoleEnum::getName)).toList());
-        System.out.println(UserRoleEnum.getEnumByName(null));
-    }
+
+//    @Resource
+//    private FrankApiClient frankApiClient;
+//    @Test
+//    public void testFrankApiClient() throws Exception {
+//        BaseApiResponse baseApiResponse = frankApiClient.callSimpleHello(2025807209132167169L);
+//        System.out.println(baseApiResponse);
+//    }
 }

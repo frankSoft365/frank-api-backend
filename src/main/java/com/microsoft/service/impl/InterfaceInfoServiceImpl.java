@@ -35,7 +35,7 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
      * 校验添加接口信息
      */
     @Override
-    public void validInterfaceInfo(InterfaceInfo interfaceInfo, Boolean add) {
+    public void validInterfaceInfo(InterfaceInfo interfaceInfo, boolean update) {
         if (interfaceInfo == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "无添加接口信息");
         }
@@ -45,15 +45,9 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         String responseHeader = interfaceInfo.getResponseHeader();
         String description = interfaceInfo.getDescription();
         String method = interfaceInfo.getMethod();
-        Integer status = interfaceInfo.getStatus();
         // 必填项：（接口状态是有默认值必填项）
         if (StringUtils.isAnyBlank(name, url, method)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "接口名称、地址、请求方法是必填项！");
-        }
-        if (!add) {
-            if (!Integer.valueOf(0).equals(status) && !Integer.valueOf(1).equals(status)) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "接口状态错误！");
-            }
         }
         // 非必填项：
         if (StringUtils.isNotBlank(requestHeader) && requestHeader.length() > 15000) {
@@ -70,12 +64,12 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
             QueryWrapper<InterfaceInfo> queryWrapper = new QueryWrapper<>();
             queryWrapper.eq("url", url);
             // 修改时排除当前记录
-            if (!add && interfaceInfo.getId() != null) {
+            if (update && interfaceInfo.getId() != null) {
                 queryWrapper.ne("id", interfaceInfo.getId());
             }
             InterfaceInfo existingInterface = this.getOne(queryWrapper);
             if (existingInterface != null) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "接口请求路径已存在，不允许重复添加！");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "接口请求路径已存在，不允许重复添加或修改！");
             }
         }
     }
