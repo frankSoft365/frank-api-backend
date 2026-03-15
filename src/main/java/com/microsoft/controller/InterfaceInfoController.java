@@ -1,5 +1,7 @@
 package com.microsoft.controller;
 
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.microsoft.annotation.AuthCheck;
 import com.microsoft.commen.DeleteRequest;
@@ -123,8 +125,10 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口连接异常，无法发布");
         }
         // 修改接口状态为 1
-        interfaceInfo.setStatus(1);
-        boolean updateResult = interfaceInfoService.updateById(interfaceInfo);
+        UpdateWrapper<InterfaceInfo> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", interfaceId);
+        updateWrapper.set("status", 1);
+        boolean updateResult = interfaceInfoService.update(updateWrapper);
         if (!updateResult) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "发布失败！");
         }
@@ -147,8 +151,10 @@ public class InterfaceInfoController {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "不存在接口");
         }
         // 修改接口状态为 0
-        interfaceInfo.setStatus(0);
-        boolean updateResult = interfaceInfoService.updateById(interfaceInfo);
+        UpdateWrapper<InterfaceInfo> updateWrapper = new UpdateWrapper<>();
+        updateWrapper.eq("id", interfaceId);
+        updateWrapper.set("status", 0);
+        boolean updateResult = interfaceInfoService.update(updateWrapper);
         if (!updateResult) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "下线失败！");
         }
