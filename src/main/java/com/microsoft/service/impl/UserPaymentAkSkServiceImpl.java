@@ -112,4 +112,45 @@ public class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMappe
                 .set(UserPaymentAkSk::getAkskStatus, 0); // 改为禁用
         paymentAkSkMapper.update(null, updateWrapper);
     }
+
+    /**
+     * 获取用户有效的 AK/SK
+     * @param userId 用户 ID
+     * @return 有效的 AK/SK记录
+     * @throws BusinessException 当用户未购买、AK/SK已禁用或已过期时抛出异常
+     */
+    @Override
+    public UserPaymentAkSk getValidAkSk(Long userId) {
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "查询所传递的用户ID为空或非法");
+        }
+
+        // 查询用户的 AK/SK记录
+        LambdaQueryWrapper<UserPaymentAkSk> queryWrapper = new LambdaQueryWrapper<UserPaymentAkSk>()
+                .eq(UserPaymentAkSk::getUserId, userId);
+        UserPaymentAkSk paymentAkSk = paymentAkSkMapper.selectOne(queryWrapper);
+
+        // 校验是否存在记录
+        if (paymentAkSk == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请先购买服务获取 AK/SK");
+        }
+
+        // 校验是否已付费
+        if (paymentAkSk.getIsPaid() != 1) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请先购买服务获取 AK/SK");
+        }
+
+        // 校验 AK/SK 状态
+        if (paymentAkSk.getAkskStatus() != 1) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "AK/SK 已禁用，无法调用接口");
+        }
+
+        // 校验是否过期
+        LocalDateTime now = LocalDateTime.now();
+        if (paymentAkSk.getServiceEndTime() != null && paymentAkSk.getServiceEndTime().isBefore(now)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "服务已过期，请续费");
+        }
+
+        return paymentAkSk;
+    }
 }

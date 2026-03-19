@@ -43,6 +43,7 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         String url = interfaceInfo.getUrl();
         String requestHeader = interfaceInfo.getRequestHeader();
         String responseHeader = interfaceInfo.getResponseHeader();
+        String requestParam = interfaceInfo.getRequestParam();
         String description = interfaceInfo.getDescription();
         String method = interfaceInfo.getMethod();
         // 必填项：（接口状态是有默认值必填项）
@@ -55,6 +56,9 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         }
         if (StringUtils.isNotBlank(responseHeader) && responseHeader.length() > 15000) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "响应头过长！");
+        }
+        if (StringUtils.isNotBlank(requestParam) && requestParam.length() > 15000) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求参数过长！");
         }
         if (StringUtils.isNotBlank(description) && description.length() > 256) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "接口描述过长！");

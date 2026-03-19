@@ -1,6 +1,5 @@
 package com.microsoft.controller;
 
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.UpdateWrapper;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.microsoft.annotation.AuthCheck;
@@ -11,9 +10,10 @@ import com.microsoft.exception.BusinessException;
 import com.microsoft.frankapisdk.client.FrankApiClient;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoAddRequest;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
-import com.microsoft.model.dto.interfaceinfo.InterfaceInfoReleaseOrOfflineRequest;
+import com.microsoft.model.dto.interfaceinfo.InterfaceInfoIdRequest;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.microsoft.model.entity.InterfaceInfo;
+import com.microsoft.model.enums.InterfaceInfoStatusEnum;
 import com.microsoft.model.vo.InterfaceInfoVO;
 import com.microsoft.service.InterfaceInfoService;
 import com.microsoft.utils.CurrentHold;
@@ -30,9 +30,6 @@ import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 @RestController
 @RequestMapping("/interfaceInfo")
 public class InterfaceInfoController {
-    /**
-     * 增删改查
-     */
     @Resource
     private InterfaceInfoService interfaceInfoService;
 
@@ -110,8 +107,8 @@ public class InterfaceInfoController {
      */
     @PostMapping("/release")
     @AuthCheck(mustRole = ADMIN_ROLE)
-    public Result<Void> releaseInterface(@RequestBody InterfaceInfoReleaseOrOfflineRequest releaseRequest) {
-        if (releaseRequest == null) {
+    public Result<Void> releaseInterface(@RequestBody InterfaceInfoIdRequest releaseRequest) {
+        if (releaseRequest == null || releaseRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "找不到请求");
         }
         // 校验接口是否存在
@@ -124,10 +121,10 @@ public class InterfaceInfoController {
         if (!frankApiClient.testConnection()) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口连接异常，无法发布");
         }
-        // 修改接口状态为 1
+        // 修改接口状态为 发布
         UpdateWrapper<InterfaceInfo> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("id", interfaceId);
-        updateWrapper.set("status", 1);
+        updateWrapper.set("status", InterfaceInfoStatusEnum.RELEASE.getValue());
         boolean updateResult = interfaceInfoService.update(updateWrapper);
         if (!updateResult) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "发布失败！");
@@ -140,8 +137,8 @@ public class InterfaceInfoController {
      */
     @PostMapping("/offline")
     @AuthCheck(mustRole = ADMIN_ROLE)
-    public Result<Void> offlineInterface(@RequestBody InterfaceInfoReleaseOrOfflineRequest offlineRequest) {
-        if (offlineRequest == null) {
+    public Result<Void> offlineInterface(@RequestBody InterfaceInfoIdRequest offlineRequest) {
+        if (offlineRequest == null || offlineRequest.getId() <= 0) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "找不到请求");
         }
         // 校验接口是否存在
@@ -153,7 +150,7 @@ public class InterfaceInfoController {
         // 修改接口状态为 0
         UpdateWrapper<InterfaceInfo> updateWrapper = new UpdateWrapper<>();
         updateWrapper.eq("id", interfaceId);
-        updateWrapper.set("status", 0);
+        updateWrapper.set("status", InterfaceInfoStatusEnum.OFFLINE.getValue());
         boolean updateResult = interfaceInfoService.update(updateWrapper);
         if (!updateResult) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "下线失败！");

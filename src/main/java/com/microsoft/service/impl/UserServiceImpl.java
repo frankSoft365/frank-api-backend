@@ -12,16 +12,19 @@ import com.microsoft.model.dto.user.UserImportRequest;
 import com.microsoft.model.vo.UserImportVO;
 import com.microsoft.model.vo.UserLoginVO;
 import com.microsoft.model.vo.UserVO;
+import com.microsoft.service.UserPaymentAkSkService;
 import com.microsoft.service.UserService;
 import com.microsoft.utils.ExcelParseUtil;
 import com.microsoft.utils.JwtUtils;
 import com.microsoft.utils.RegexUtils;
+import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.codec.digest.DigestUtils;
 import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.executor.BatchResult;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -38,6 +41,9 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
     public UserServiceImpl(UserMapper userMapper) {
         this.userMapper = userMapper;
     }
+
+    @Resource
+    private UserPaymentAkSkService userPaymentAkSkService;
 
     /**
      * 用户注册 校验账户名和密码 将用户存入数据库 返回用户的id
@@ -92,6 +98,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         if (!result) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "添加用户失败");
         }
+        // 添加ak,sk
         log.info("用户注册成功");
         return user.getId();
     }

@@ -17,6 +17,7 @@ public class InterfaceInfo {
     private String url;
     private String requestHeader;
     private String responseHeader;
+    private String requestParam;
     private Integer status;
     private String method;
     private Long userId;

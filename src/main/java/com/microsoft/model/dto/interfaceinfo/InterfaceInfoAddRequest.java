@@ -8,6 +8,7 @@ public class InterfaceInfoAddRequest {
     private String url;
     private String requestHeader;
     private String responseHeader;
+    private String requestParam;
     private String description;
     private String method;
 }

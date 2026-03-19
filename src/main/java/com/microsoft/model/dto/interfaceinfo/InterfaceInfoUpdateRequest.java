@@ -13,6 +13,8 @@ public class InterfaceInfoUpdateRequest {
     // 修改请求头和响应头
     private String requestHeader;
     private String responseHeader;
+    // 修改请求参数
+    private String requestParam;
     // 修改接口的描述信息
     private String description;
     // 修改接口的请求方法
