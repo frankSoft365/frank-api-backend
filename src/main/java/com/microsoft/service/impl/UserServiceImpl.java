@@ -4,11 +4,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.microsoft.commen.ErrorCode;
+import com.microsoft.model.dto.userPaymentAkSk.GenerateAkSkRequest;
 import com.microsoft.model.enums.UserRoleEnum;
 import com.microsoft.exception.BusinessException;
 import com.microsoft.mapper.UserMapper;
 import com.microsoft.model.entity.User;
 import com.microsoft.model.dto.user.UserImportRequest;
+import com.microsoft.model.vo.GenerateAkSkVO;
 import com.microsoft.model.vo.UserImportVO;
 import com.microsoft.model.vo.UserLoginVO;
 import com.microsoft.model.vo.UserVO;
@@ -99,8 +101,12 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             throw new BusinessException(ErrorCode.DATABASE_ERROR, "添加用户失败");
         }
         // 添加ak,sk
+        Long userId = user.getId();
+        Integer payDays = 30;
+        GenerateAkSkRequest generateAkSkRequest = new GenerateAkSkRequest(userId, payDays);
+        userPaymentAkSkService.payAndGenerateAkSk(generateAkSkRequest);
         log.info("用户注册成功");
-        return user.getId();
+        return userId;
     }
 
     /**

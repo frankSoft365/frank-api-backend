@@ -17,10 +17,6 @@ public class UserPaymentAkSk {
     @TableField("user_id")
     private Long userId;
     
-    // 付费字段
-    @TableField("is_paid")
-    private Integer isPaid;
-    
     @TableField("service_start_time")
     private LocalDateTime serviceStartTime;
     
@@ -39,6 +35,9 @@ public class UserPaymentAkSk {
     
     @TableField("aksk_status")
     private Integer akskStatus;
+
+    @TableField("aksk_view_status")
+    private Integer akskViewStatus;
     
     @TableField("create_time")
     private LocalDateTime createTime;

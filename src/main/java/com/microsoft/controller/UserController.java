@@ -9,6 +9,7 @@ import com.microsoft.model.dto.user.UserUpdateRequest;
 import com.microsoft.model.entity.User;
 import com.microsoft.model.dto.user.UserLoginRequest;
 import com.microsoft.model.dto.user.UserRegisterRequest;
+import com.microsoft.model.vo.GenerateAkSkVO;
 import com.microsoft.model.vo.UserImportVO;
 import com.microsoft.model.vo.UserLoginVO;
 import com.microsoft.model.vo.UserVO;
@@ -51,8 +52,8 @@ public class UserController {
             // 参数为空串
             throw new BusinessException(ErrorCode.PARAM_ERROR, "账户名或密码或确认码为空");
         }
-        Long id = userService.userRegister(userAccount, password, checkPassword);
-        return Result.success(id);
+        Long userId = userService.userRegister(userAccount, password, checkPassword);
+        return Result.success(userId);
     }
 
     /**

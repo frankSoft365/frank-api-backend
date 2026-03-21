@@ -28,7 +28,7 @@ public class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMappe
     private UserPaymentAkSkMapper paymentAkSkMapper;
 
     /**
-     * 付费+分配AK/SK
+     * 分配AK/SK
      */
     @Transactional(rollbackFor = Exception.class)
     public GenerateAkSkVO payAndGenerateAkSk(GenerateAkSkRequest request) {
@@ -47,20 +47,14 @@ public class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMappe
                 .eq(UserPaymentAkSk::getUserId, userId);
         UserPaymentAkSk paymentAkSk = paymentAkSkMapper.selectOne(queryWrapper);
         
-        // 初始化未付费用户记录（is_paid=0，AK/SK全NULL）
+        // 初始化未付费用户记录（AK/SK全NULL）
         if (paymentAkSk == null) {
             log.info("用户无付费记录，新建付费记录");
             paymentAkSk = new UserPaymentAkSk();
             paymentAkSk.setUserId(userId);
-            paymentAkSk.setIsPaid(0); // 未付费
             paymentAkSkMapper.insert(paymentAkSk);
             // 重新查询获取初始化的记录
             paymentAkSk = paymentAkSkMapper.selectOne(queryWrapper);
-        }
-
-        // 3. 校验是否已付费
-        if (paymentAkSk.getIsPaid() == 1) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户已付费");
         }
 
         // 4. 生成AK/SK
@@ -78,7 +72,6 @@ public class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMappe
         // 6. 更新合并表
         LambdaUpdateWrapper<UserPaymentAkSk> updateWrapper = new LambdaUpdateWrapper<UserPaymentAkSk>()
                 .eq(UserPaymentAkSk::getUserId, userId)
-                .set(UserPaymentAkSk::getIsPaid, 1) // 改为已付费
                 .set(UserPaymentAkSk::getServiceStartTime, serviceStartTime)
                 .set(UserPaymentAkSk::getServiceEndTime, serviceEndTime)
                 .set(UserPaymentAkSk::getAccessKey, ak)
@@ -106,7 +99,6 @@ public class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMappe
         LocalDateTime now = LocalDateTime.now();
         // 链式更新：付费已过期且AK/SK仍启用的记录
         LambdaUpdateWrapper<UserPaymentAkSk> updateWrapper = new LambdaUpdateWrapper<UserPaymentAkSk>()
-                .eq(UserPaymentAkSk::getIsPaid, 1)
                 .le(UserPaymentAkSk::getServiceEndTime, now) // 服务结束时间≤当前时间
                 .eq(UserPaymentAkSk::getAkskStatus, 1) // 状态为启用
                 .set(UserPaymentAkSk::getAkskStatus, 0); // 改为禁用
@@ -132,12 +124,7 @@ public class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMappe
 
         // 校验是否存在记录
         if (paymentAkSk == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请先购买服务获取 AK/SK");
-        }
-
-        // 校验是否已付费
-        if (paymentAkSk.getIsPaid() != 1) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请先购买服务获取 AK/SK");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请先注册获取 AK/SK");
         }
 
         // 校验 AK/SK 状态

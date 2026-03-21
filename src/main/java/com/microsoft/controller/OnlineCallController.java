@@ -26,8 +26,6 @@ public class OnlineCallController {
     @Resource
     private UserPaymentAkSkService userPaymentAkSkService;
 
-    private final String baseUrl = "http://localhost:8123";
-
     /**
      * redis限流
      */
@@ -54,13 +52,13 @@ public class OnlineCallController {
         }
         String url = "/api" + fullUrl.split("/api")[1];
         Object param = request.getParam();
-        // 用户注册则获得aksk，但是有次数期限，付费持续获得资格
         // 查询到用户的ak,sk，用该ak,sk调用接口
         Long userId = CurrentHold.getCurrentId();
         // 调用 Service 层方法获取有效的 AK/SK
         UserPaymentAkSk paymentAkSk = userPaymentAkSkService.getValidAkSk(userId);
 
         // 使用用户的 AK/SK 调用接口
+        String baseUrl = "http://localhost:8123";
         FrankApiClient frankApiClient = new FrankApiClient(baseUrl,
                 paymentAkSk.getAccessKey(),
                 paymentAkSk.getSecretKeyHash());
