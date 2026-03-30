@@ -51,11 +51,10 @@ public class OnlineCallController {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "接口已关闭，无法访问");
         }
         // 存在则根据url发送请求
-        String fullUrl = interfaceInfo.getUrl();
-        if (fullUrl == null) {
+        String path = interfaceInfo.getUrl();
+        if (path == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请求失败");
         }
-        String url = "/api" + fullUrl.split("/api")[1];
         Object param = request.getParam();
         // 查询到用户的ak,sk，用该ak,sk调用接口
         Long userId = CurrentHold.getCurrentId();
@@ -67,7 +66,7 @@ public class OnlineCallController {
         FrankApiClient frankApiClient = new FrankApiClient(baseUrl,
                 paymentAkSk.getAccessKey(),
                 paymentAkSk.getSecretKeyHash());
-        BaseApiResponse baseApiResponse = frankApiClient.callByUrl(interfaceId, url, param);
+        BaseApiResponse baseApiResponse = frankApiClient.callByUrl(interfaceId, path, param);
         return Result.success(baseApiResponse);
     }
 }

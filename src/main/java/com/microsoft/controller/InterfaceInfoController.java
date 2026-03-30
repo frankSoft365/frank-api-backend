@@ -27,7 +27,6 @@ import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
 import java.net.URI;
-import java.net.URISyntaxException;
 
 import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 
@@ -40,7 +39,6 @@ public class InterfaceInfoController {
     private InterfaceInfoService interfaceInfoService;
     @Resource
     private UserPaymentAkSkService userPaymentAkSkService;
-
     // 网关的地址
     @Resource
     private FrankApiGatewayConfig frankApiGatewayConfig;
@@ -137,17 +135,7 @@ public class InterfaceInfoController {
                 paymentAkSk.getSecretKeyHash());
         // ----------------------------------------------------
         // 拿到接口请求路径
-        String interfaceInfoUrl = interfaceInfo.getUrl();
-        String interfaceInfoPath;
-        try {
-            URI uri = new URI(interfaceInfoUrl);
-            if (uri.getScheme() == null || (!"http".equals(uri.getScheme()) && !"https".equals(uri.getScheme()))) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "请求路径错误，无法发布");
-            }
-            interfaceInfoPath = uri.getPath();
-        } catch (Exception e) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求路径错误，无法发布");
-        }
+        String interfaceInfoPath = interfaceInfo.getUrl();
         // 校验接口是否能够请求
         if (!frankApiClient.testConnection(interfaceId, interfaceInfoPath)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口连接异常，无法发布");

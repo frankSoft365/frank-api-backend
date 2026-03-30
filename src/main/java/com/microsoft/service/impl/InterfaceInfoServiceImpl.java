@@ -50,6 +50,10 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         if (StringUtils.isAnyBlank(name, url, method)) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "接口名称、地址、请求方法是必填项！");
         }
+        // url只给出path，以 / 开头
+        if (!url.startsWith("/")) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "接口路径应以“/”开头");
+        }
         // 非必填项：
         if (StringUtils.isNotBlank(requestHeader) && requestHeader.length() > 15000) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, "请求头过长！");
