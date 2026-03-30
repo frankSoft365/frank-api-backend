@@ -6,6 +6,7 @@ import com.microsoft.annotation.AuthCheck;
 import com.microsoft.commen.DeleteRequest;
 import com.microsoft.commen.ErrorCode;
 import com.microsoft.commen.Result;
+import com.microsoft.config.FrankApiGatewayConfig;
 import com.microsoft.exception.BusinessException;
 import com.microsoft.frankapisdk.client.FrankApiClient;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoAddRequest;
@@ -13,15 +14,20 @@ import com.microsoft.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoIdRequest;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoUpdateRequest;
 import com.microsoft.model.entity.InterfaceInfo;
+import com.microsoft.model.entity.UserPaymentAkSk;
 import com.microsoft.model.enums.InterfaceInfoStatusEnum;
 import com.microsoft.model.vo.InterfaceInfoVO;
 import com.microsoft.service.InterfaceInfoService;
+import com.microsoft.service.UserPaymentAkSkService;
 import com.microsoft.utils.CurrentHold;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.annotation.Resource;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
+
+import java.net.URI;
+import java.net.URISyntaxException;
 
 import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 
@@ -32,10 +38,12 @@ import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 public class InterfaceInfoController {
     @Resource
     private InterfaceInfoService interfaceInfoService;
-
-    // 用于校验接口可调用性
     @Resource
-    private FrankApiClient frankApiClient;
+    private UserPaymentAkSkService userPaymentAkSkService;
+
+    // 网关的地址
+    @Resource
+    private FrankApiGatewayConfig frankApiGatewayConfig;
 
     /**
      * 添加一个接口
@@ -117,8 +125,31 @@ public class InterfaceInfoController {
         if (interfaceInfo == null) {
             throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "不存在接口");
         }
+        // ----------------------------------------------------
+        // 查询到管理员的ak,sk，用该ak,sk调用接口
+        Long userId = CurrentHold.getCurrentId();
+        // 调用 Service 层方法获取有效的 AK/SK
+        UserPaymentAkSk paymentAkSk = userPaymentAkSkService.getValidAkSk(userId);
+        // 使用管理员的 AK/SK 调用接口
+        String baseUrl = frankApiGatewayConfig.getBaseUrl();
+        FrankApiClient frankApiClient = new FrankApiClient(baseUrl,
+                paymentAkSk.getAccessKey(),
+                paymentAkSk.getSecretKeyHash());
+        // ----------------------------------------------------
+        // 拿到接口请求路径
+        String interfaceInfoUrl = interfaceInfo.getUrl();
+        String interfaceInfoPath;
+        try {
+            URI uri = new URI(interfaceInfoUrl);
+            if (uri.getScheme() == null || (!"http".equals(uri.getScheme()) && !"https".equals(uri.getScheme()))) {
+                throw new BusinessException(ErrorCode.PARAM_ERROR, "请求路径错误，无法发布");
+            }
+            interfaceInfoPath = uri.getPath();
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求路径错误，无法发布");
+        }
         // 校验接口是否能够请求
-        if (!frankApiClient.testConnection()) {
+        if (!frankApiClient.testConnection(interfaceId, interfaceInfoPath)) {
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口连接异常，无法发布");
         }
         // 修改接口状态为 发布

@@ -35,3 +35,9 @@ avatar:
     max-height: 800 # 最大高度
     quality: 0.7 # 压缩质量（0-1）
     allowed-types: jpg,jpeg,png # 允许的文件类型
+# frank-api-gateway 配置
+frank:
+  api:
+    gateway:
+      baseUrl: http://localhost:8123
+

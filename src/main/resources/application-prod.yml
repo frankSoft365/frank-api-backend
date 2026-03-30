@@ -7,3 +7,8 @@ spring:
     password: 12345
 server:
   port: 8080
+# frank-api-gateway 配置
+frank:
+  api:
+    gateway:
+      baseUrl: http://localhost:8123

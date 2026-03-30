@@ -2,6 +2,7 @@ package com.microsoft.controller;
 
 import com.microsoft.commen.ErrorCode;
 import com.microsoft.commen.Result;
+import com.microsoft.config.FrankApiGatewayConfig;
 import com.microsoft.exception.BusinessException;
 import com.microsoft.frankapisdk.client.FrankApiClient;
 import com.microsoft.frankapisdk.commen.BaseApiResponse;
@@ -25,6 +26,10 @@ public class OnlineCallController {
     private InterfaceInfoService interfaceInfoService;
     @Resource
     private UserPaymentAkSkService userPaymentAkSkService;
+
+    // 网关的地址
+    @Resource
+    private FrankApiGatewayConfig frankApiGatewayConfig;
 
     /**
      * redis限流
@@ -58,7 +63,7 @@ public class OnlineCallController {
         UserPaymentAkSk paymentAkSk = userPaymentAkSkService.getValidAkSk(userId);
 
         // 使用用户的 AK/SK 调用接口
-        String baseUrl = "http://localhost:8123";
+        String baseUrl = frankApiGatewayConfig.getBaseUrl();
         FrankApiClient frankApiClient = new FrankApiClient(baseUrl,
                 paymentAkSk.getAccessKey(),
                 paymentAkSk.getSecretKeyHash());
