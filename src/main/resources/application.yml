@@ -1,5 +1,5 @@
 server:
-  port: 8080
+  port: 8088
 # DataSource Config
 spring:
   application:
@@ -40,4 +40,21 @@ frank:
   api:
     gateway:
       baseUrl: http://localhost:8123
+# nacos : d9cbCuZmnFsI 7vPLGAh8DVlL sh startup.sh -m standalone
+# dubbo配置
+dubbo:
+  registry:
+    address: nacos://${nacos.address:127.0.0.1}:8848?username=nacos&password=7vPLGAh8DVlL
+    # This will enable application-level service discovery only (the recommended service discovery method for Dubbo3).
+    # For users upgrading from Dubbo2.x, please set the value to 'all' for smooth migration.
+    register-mode: instance
+  protocol:
+    name: tri
+    port: 50051
+  application:
+    qos-enable: true
+    name: ${spring.application.name}
+    qos-port: 22222
+    qos-accept-foreign-ip: false
+    logger: slf4j
 

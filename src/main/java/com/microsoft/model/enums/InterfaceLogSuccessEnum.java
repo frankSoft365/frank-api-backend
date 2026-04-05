@@ -5,12 +5,10 @@ import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public enum UserPaymentAkSkStatusEnum {
-    CAN_VIEW(0, "可查看"),
-    CANNOT_VIEW(1, "不可查看"),
-    STATUS_NORMAL(1, "启用"),
-    STATUS_BANNED(0, "禁用");
-    
+public enum InterfaceLogSuccessEnum {
+    ERROR(0, "失败"),
+    SUCCESS(1, "成功");
+
     private final Integer value;
     private final String name;
 }

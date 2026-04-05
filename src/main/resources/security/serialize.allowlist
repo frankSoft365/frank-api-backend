@@ -1,0 +1,5 @@
+com.microsoft.frankapisdk.service.model.dto.SignatureVerifyResponse
+org.apache.dubbo.remoting.RemotingException
+org.apache.dubbo.remoting.http12.exception.EncodeException
+org.apache.dubbo.rpc.RpcResult
+org.apache.dubbo.rpc.Result

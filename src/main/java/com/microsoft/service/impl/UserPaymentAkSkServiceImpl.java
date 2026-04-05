@@ -21,7 +21,7 @@ import java.time.LocalDateTime;
 
 @Slf4j
 @Service
-public class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMapper, UserPaymentAkSk> implements UserPaymentAkSkService {
+class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMapper, UserPaymentAkSk> implements UserPaymentAkSkService {
     @Resource
     private UserMapper userMapper;
     @Resource

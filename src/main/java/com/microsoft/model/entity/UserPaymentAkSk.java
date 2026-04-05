@@ -8,6 +8,9 @@ import lombok.Data;
 
 import java.time.LocalDateTime;
 
+/**
+ * 保存用户ak、sk与有效性
+ */
 @Data
 @TableName("user_payment_aksk") // 映射合并表
 public class UserPaymentAkSk {
