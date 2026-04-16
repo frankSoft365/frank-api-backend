@@ -9,6 +9,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import static com.microsoft.constant.CommonConstant.*;
+
 @Component
 @Slf4j
 public class TokenInterceptor implements HandlerInterceptor {
@@ -30,29 +32,27 @@ public class TokenInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) throws Exception {
         // 从请求头中获得token
-        String authHeader = request.getHeader("Authorization");
+        String authHeader = request.getHeader(TOKEN_REQUEST_HEADER_KEY);
         // 如果是空 返回401
         String token = null;
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            token = authHeader.substring(7);
+        if (authHeader != null && authHeader.startsWith(TOKEN_START_WITH)) {
+            token = authHeader.substring(TOKEN_START_WITH.length());
         }
         if (token == null || token.isEmpty()) {
-            log.info("没有token，拒绝访问接口");
+            log.error("没有token，拒绝访问接口");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
         // 拿到token 进行解析
         try {
             Claims claims = JwtUtils.parseToken(token);
-            Long id = Long.valueOf(claims.get("id").toString());
+            Long id = Long.valueOf(claims.get(TOKEN_PAYLOAD_KEY_1).toString());
             CurrentHold.setCurrentId(id);
         } catch (Exception e) {
-            log.info("token无效，拒绝访问接口");
+            log.error("token无效，拒绝访问接口");
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
-        // 解析无报错 放行
-        log.info("token有效，允许访问接口");
         return true;
     }
 }

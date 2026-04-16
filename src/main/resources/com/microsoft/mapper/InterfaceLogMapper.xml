@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.microsoft.mapper.InterfaceLogMapper">
+    <select id="selectInterfaceStatVOList" resultType="com.microsoft.model.vo.interfaceMonitoring.InterfaceStatVO">
+        select
+            interface_url as interfacePath,
+            request_method as requestMethod,
+            count(*) as total,
+            sum(case when success=1 then 1 else 0 end ) as success,
+            sum(case when success=0 then 1 else 0 end ) as fail,
+            round(sum(case when success=1 then 1 else 0 end ) / count(*) * 100, 2) as successRate,
+            round(avg(cost_time), 2) as avgCost,
+            max(cost_time) as maxCost
+        from interface_log
+        ${ew.customSqlSegment}
+    </select>
+
+    <select id="selectUserCallRankVOList" resultType="com.microsoft.model.vo.interfaceMonitoring.UserCallRankVO">
+        select
+            user_id as userId,
+            count(*) as totalCall,
+            count(distinct interface_url) as interfaceCount,
+            round(avg(cost_time), 2) as avgCost,
+            round(sum(case when success=1 then 1 else 0 end ) / count(*) * 100, 2) as successRate,
+            max(create_time) as lastCallTime
+        from interface_log
+        ${ew.customSqlSegment}
+    </select>
+
+</mapper>

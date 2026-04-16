@@ -2,6 +2,7 @@ package com.microsoft.aop;
 
 import com.microsoft.annotation.AuthCheck;
 import com.microsoft.commen.ErrorCode;
+import com.microsoft.constant.ErrorDescriptionConstant;
 import com.microsoft.model.enums.UserRoleEnum;
 import com.microsoft.exception.BusinessException;
 import com.microsoft.model.entity.User;
@@ -23,6 +24,7 @@ import org.springframework.stereotype.Component;
 public class AuthInterceptor {
     @Resource
     private UserService userService;
+
     /**
      * 进行拦截 范围：标注特定注解（注解赋值标明何种权限可以访问）的接口
      * 执行：获取发起该请求的用户的id 查询该用户的权限 对比用户权限与预设所要求的权限
@@ -35,19 +37,19 @@ public class AuthInterceptor {
         Long currentId = CurrentHold.getCurrentId();
         User userInfo = userService.getById(currentId);
         // 鉴定权限 只要不匹配抛异常返回
-            UserRoleEnum enumByValue = UserRoleEnum.getEnumByValue(mustRole);
-            if (enumByValue == null) {
-                throw new BusinessException(ErrorCode.NO_AUTH, "用户无权限");
+        UserRoleEnum mustRoleEnum = UserRoleEnum.getEnumByValue(mustRole);
+        if (mustRoleEnum == null) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, ErrorDescriptionConstant.SYSTEM_INTERNAL_ERROR);
+        }
+        // 用户的身份是：
+        Integer role = userInfo.getRole();
+        // 预设要求是管理员的话
+        if (UserRoleEnum.ADMIN_ROLE.equals(mustRoleEnum)) {
+            // 用户的权限不符：
+            if (mustRole != role) {
+                throw new BusinessException(ErrorCode.NO_AUTH, ErrorDescriptionConstant.NO_PERMISSION);
             }
-            // 用户的身份是：
-            Integer role = userInfo.getRole();
-            // 预设要求是管理员的话
-            if (UserRoleEnum.ADMIN_ROLE.equals(enumByValue)) {
-                // 用户的权限不符：
-                if (mustRole != role) {
-                    throw new BusinessException(ErrorCode.NO_AUTH, "用户无权限：" + enumByValue.getName());
-                }
-            }
+        }
         // 放行原本方法体
         return joinPoint.proceed();
     }

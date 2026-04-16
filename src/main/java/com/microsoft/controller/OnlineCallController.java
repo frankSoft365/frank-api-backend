@@ -19,6 +19,8 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import static com.microsoft.constant.ErrorDescriptionConstant.*;
+
 @RestController
 @RequestMapping("/onlineCall")
 public class OnlineCallController {
@@ -26,35 +28,31 @@ public class OnlineCallController {
     private InterfaceInfoService interfaceInfoService;
     @Resource
     private UserPaymentAkSkService userPaymentAkSkService;
-
     // 网关的地址
     @Resource
     private FrankApiGatewayConfig frankApiGatewayConfig;
 
     /**
-     * redis限流
+     * 线上调用
      */
     @PostMapping
-    public Result<BaseApiResponse> onlineCallInterface(@RequestBody OnlineCallRequest request) throws Exception {
+    public Result<BaseApiResponse> onlineCallInterface(@RequestBody OnlineCallRequest request) {
         if (request == null || request.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求失败");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
         }
         Long interfaceId = request.getId();
         // 查找数据库中是否存在该接口
         InterfaceInfo interfaceInfo = interfaceInfoService.getById(interfaceId);
         // 不存在则抛异常
         if (interfaceInfo == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求失败");
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, OBJECT_NOT_FOUND);
         }
         // 如果接口是关闭状态 拒绝访问
         if (!Integer.valueOf(InterfaceInfoStatusEnum.RELEASE.getValue()).equals(interfaceInfo.getStatus())) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "接口已关闭，无法访问");
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, INTERFACE_UNAVAILABLE);
         }
         // 存在则根据url发送请求
         String path = interfaceInfo.getUrl();
-        if (path == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求失败");
-        }
         Object param = request.getParam();
         // 查询到用户的ak,sk，用该ak,sk调用接口
         Long userId = CurrentHold.getCurrentId();
@@ -66,7 +64,7 @@ public class OnlineCallController {
         FrankApiClient frankApiClient = new FrankApiClient(baseUrl,
                 paymentAkSk.getAccessKey(),
                 paymentAkSk.getSecretKeyHash());
-        BaseApiResponse baseApiResponse = frankApiClient.callByUrl(interfaceId, path, param);
+        BaseApiResponse baseApiResponse = frankApiClient.callByUrl(path, param);
         return Result.success(baseApiResponse);
     }
 }

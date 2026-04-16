@@ -26,8 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
 import org.springframework.web.bind.annotation.*;
 
-import java.net.URI;
-
+import static com.microsoft.constant.ErrorDescriptionConstant.*;
 import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 
 @Tag(name = "接口信息模块", description = "接口信息的增删改查接口")
@@ -50,7 +49,7 @@ public class InterfaceInfoController {
     @PostMapping("/add")
     public Result<Long> addInterfaceInfo(@RequestBody InterfaceInfoAddRequest addRequest) {
         if (addRequest == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "无添加接口信息");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         InterfaceInfo interfaceInfo = new InterfaceInfo();
         BeanUtils.copyProperties(addRequest, interfaceInfo);
@@ -58,7 +57,10 @@ public class InterfaceInfoController {
         interfaceInfoService.validInterfaceInfo(interfaceInfo, false);
         Long userId = CurrentHold.getCurrentId();
         interfaceInfo.setUserId(userId);
-        interfaceInfoService.save(interfaceInfo);
+        boolean save = interfaceInfoService.save(interfaceInfo);
+        if (!save) {
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_INSERT_FAILED);
+        }
         Long interfaceInfoId = interfaceInfo.getId();
         return Result.success(interfaceInfoId);
     }
@@ -70,16 +72,16 @@ public class InterfaceInfoController {
     @PostMapping("/delete")
     public Result<Void> deleteInterfaceInfo(@RequestBody DeleteRequest deleteRequest) {
         if (deleteRequest == null || deleteRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "未指定删除对象！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
         }
         // 删除之前先查询是否存在
         InterfaceInfo getById = interfaceInfoService.getById(deleteRequest.getId());
         if (getById == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "找不到所要删除接口！");
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, OBJECT_NOT_FOUND);
         }
         boolean removeById = interfaceInfoService.removeById(deleteRequest.getId());
         if (!removeById) {
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "删除失败！");
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_DELETE_FAILED);
         }
         return Result.success();
     }
@@ -91,7 +93,7 @@ public class InterfaceInfoController {
     @AuthCheck(mustRole = ADMIN_ROLE)
     public Result<Void> updateInterfaceInfo(@RequestBody InterfaceInfoUpdateRequest updateRequest) {
         if (updateRequest == null || updateRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "找不到修改数据");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
         }
         InterfaceInfo interfaceInfo = new InterfaceInfo();
         BeanUtils.copyProperties(updateRequest, interfaceInfo);
@@ -99,11 +101,11 @@ public class InterfaceInfoController {
         // 判断是否存在接口
         InterfaceInfo byId = interfaceInfoService.getById(interfaceInfo.getId());
         if (byId == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "修改的接口不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, OBJECT_NOT_FOUND);
         }
         boolean updateById = interfaceInfoService.updateById(interfaceInfo);
         if (!updateById) {
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "修改失败！");
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_UPDATE_FAILED);
         }
         return Result.success();
     }
@@ -115,13 +117,13 @@ public class InterfaceInfoController {
     @AuthCheck(mustRole = ADMIN_ROLE)
     public Result<Void> releaseInterface(@RequestBody InterfaceInfoIdRequest releaseRequest) {
         if (releaseRequest == null || releaseRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "找不到请求");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
         }
         // 校验接口是否存在
         Long interfaceId = releaseRequest.getId();
         InterfaceInfo interfaceInfo = interfaceInfoService.getById(interfaceId);
         if (interfaceInfo == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "不存在接口");
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, OBJECT_NOT_FOUND);
         }
         // ----------------------------------------------------
         // 查询到管理员的ak,sk，用该ak,sk调用接口
@@ -137,8 +139,12 @@ public class InterfaceInfoController {
         // 拿到接口请求路径
         String interfaceInfoPath = interfaceInfo.getUrl();
         // 校验接口是否能够请求
-        if (!frankApiClient.testConnection(interfaceId, interfaceInfoPath)) {
-            throw new BusinessException(ErrorCode.SYSTEM_ERROR, "接口连接异常，无法发布");
+        try {
+            if (!frankApiClient.testConnection(interfaceInfoPath)) {
+                throw new BusinessException(ErrorCode.SYSTEM_ERROR, INTERFACE_CONNECTION_ERROR);
+            }
+        } catch (Exception e) {
+            throw new BusinessException(ErrorCode.SYSTEM_ERROR, INTERFACE_CONNECTION_ERROR);
         }
         // 修改接口状态为 发布
         UpdateWrapper<InterfaceInfo> updateWrapper = new UpdateWrapper<>();
@@ -146,7 +152,7 @@ public class InterfaceInfoController {
         updateWrapper.set("status", InterfaceInfoStatusEnum.RELEASE.getValue());
         boolean updateResult = interfaceInfoService.update(updateWrapper);
         if (!updateResult) {
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "发布失败！");
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_UPDATE_FAILED);
         }
         return Result.success();
     }
@@ -158,13 +164,13 @@ public class InterfaceInfoController {
     @AuthCheck(mustRole = ADMIN_ROLE)
     public Result<Void> offlineInterface(@RequestBody InterfaceInfoIdRequest offlineRequest) {
         if (offlineRequest == null || offlineRequest.getId() <= 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "找不到请求");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
         }
         // 校验接口是否存在
         Long interfaceId = offlineRequest.getId();
         InterfaceInfo interfaceInfo = interfaceInfoService.getById(interfaceId);
         if (interfaceInfo == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "不存在接口");
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, OBJECT_NOT_FOUND);
         }
         // 修改接口状态为 0
         UpdateWrapper<InterfaceInfo> updateWrapper = new UpdateWrapper<>();
@@ -172,7 +178,7 @@ public class InterfaceInfoController {
         updateWrapper.set("status", InterfaceInfoStatusEnum.OFFLINE.getValue());
         boolean updateResult = interfaceInfoService.update(updateWrapper);
         if (!updateResult) {
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "下线失败！");
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_UPDATE_FAILED);
         }
         return Result.success();
     }
@@ -183,11 +189,11 @@ public class InterfaceInfoController {
     @GetMapping("/get/vo")
     public Result<InterfaceInfoVO> getInterfaceInfoVOById(Long id) {
         if (id <= 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "无法获取接口信息！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_FORMAT_ERROR);
         }
         InterfaceInfo byId = interfaceInfoService.getById(id);
         if (byId == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "无法获取接口信息");
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, OBJECT_NOT_FOUND);
         }
         return Result.success(interfaceInfoService.getInterfaceInfoVO(byId));
     }
@@ -199,7 +205,7 @@ public class InterfaceInfoController {
     @PostMapping("/list/page")
     public Result<Page<InterfaceInfo>> listInterfaceInfoByPage(@RequestBody InterfaceInfoQueryRequest interfaceInfoQueryRequest) {
         if (interfaceInfoQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "无法查询！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         long current = interfaceInfoQueryRequest.getCurrent();
         long size = interfaceInfoQueryRequest.getPageSize();
@@ -214,13 +220,13 @@ public class InterfaceInfoController {
     @PostMapping("/list/page/vo")
     public Result<Page<InterfaceInfoVO>> listInterfaceInfoVOByPage(@RequestBody InterfaceInfoQueryRequest interfaceInfoQueryRequest) {
         if (interfaceInfoQueryRequest == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "无法查询！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         long current = interfaceInfoQueryRequest.getCurrent();
         long size = interfaceInfoQueryRequest.getPageSize();
         // 限制爬虫
         if (size > 20) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "不支持过大单页数据条数");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PAGE_SIZE_EXCEEDED);
         }
         Page<InterfaceInfo> interfaceInfoPage = interfaceInfoService.page(new Page<>(current, size),
                 interfaceInfoService.getQueryWrapper(interfaceInfoQueryRequest));

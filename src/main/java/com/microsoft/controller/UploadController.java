@@ -16,17 +16,15 @@ import org.springframework.web.multipart.MultipartFile;
 public class UploadController {
     @Resource
     private AvatarUtils avatarUtils;
-
     /**
      * 上传图片
      */
     @PostMapping("/upload")
-    public Result<String> upload(MultipartFile avatar) throws Exception {
+    public Result<String> upload(MultipartFile avatar) {
         // 校验
         avatarUtils.verifyAvatar(avatar);
         // 压缩 上传阿里云
         String url = avatarUtils.compressAndUploadAvatar(avatar);
-        log.info("上传了图片：{}", url);
         return Result.success(url);
     }
 }

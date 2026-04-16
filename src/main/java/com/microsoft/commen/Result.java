@@ -7,7 +7,7 @@ import lombok.Data;
  */
 @Data
 public class Result<T> {
-    private Integer code;// 0 失败 1 成功
+    private Integer code;// 0 成功
     private T data;// 返回前端的数据
     private String message;// 状态码的描述
     private String description;// 错误具体描述

@@ -23,10 +23,12 @@ public class InterfaceLog {
     private String interfaceUrl;
     // 接口请求方法：GET POST ...
     private String requestMethod;
+    // 用户id
+    private Long userId;
     // 请求者ip地址
     private String hostIp;
     // 耗时 从发送请求到网关到准备返回的处理时间
-    private Integer costTime;
+    private Long costTime;
     // 该次请求是否成功 即标准API响应是否含有Error字段 1：成功 0：失败
     private Integer success;
     // 失败原因

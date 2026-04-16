@@ -34,10 +34,20 @@ import java.time.LocalDateTime;
 import java.util.*;
 import java.util.stream.Collectors;
 
+import static com.microsoft.constant.CommonConstant.TOKEN_PAYLOAD_KEY_1;
+import static com.microsoft.constant.CommonConstant.TOKEN_PAYLOAD_KEY_2;
+import static com.microsoft.constant.ErrorDescriptionConstant.*;
+
 
 @Slf4j
 @Service
 public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements UserService {
+
+    private static final int MIN_USER_ACCOUNT_LENGTH = 6;
+    private static final int MAX_USER_ACCOUNT_LENGTH = 20;
+    private static final int MIN_PASSWORD_LENGTH = 6;
+    private static final int MAX_PASSWORD_LENGTH = 20;
+
     private final UserMapper userMapper;
 
     public UserServiceImpl(UserMapper userMapper) {
@@ -55,29 +65,29 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 用户账户名 密码 校验密码不能为空或者空字符串
         if (StringUtils.isAllBlank(userAccount, password, checkPassword)) {
             // 参数为空
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账号或密码或确认码为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, CREDENTIAL_INCOMPLETE);
         }
         // 账户名的长度要求 6-20 密码的长度要求 6-20
-        if (userAccount.length() < 6 || userAccount.length() > 20) {
+        if (userAccount.length() < MIN_USER_ACCOUNT_LENGTH || userAccount.length() > MAX_USER_ACCOUNT_LENGTH) {
             // 参数不合法
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账户名长度不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_LENGTH_INVALID);
         }
-        if (password.length() < 6 || password.length() > 20) {
+        if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
             // 参数不合法
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "密码长度不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PASSWORD_LENGTH_INVALID);
         }
         // 账户名里面不能有特殊字符 是字母 数字 下划线 中划线 密码 是字母数字常见特殊字符
         if (!RegexUtils.isValidUserAccount(userAccount)) {
             // 参数不合法
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账户名包含字符不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_FORMAT_INVALID);
         }
         if (!RegexUtils.isValidPassword(password)) {
             // 参数不合法
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "密码包含字符不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PASSWORD_FORMAT_INVALID);
         }
         // 校验密码和密码相同
         if (!password.equals(checkPassword)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "密码与确认码不一致");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PASSWORD_AND_CODE_DO_NOT_MATCH);
         }
         // 账户名不能有重复
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
@@ -85,7 +95,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         long count = this.count(queryWrapper);
         if (count > 0) {
             log.info("用户账户名已存在");
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账户名已存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_DUPLICATE);
         }
         // 将密码加密
         String encodePassword = DigestUtils.md5Hex(password);
@@ -98,7 +108,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         user.setUpdateTime(LocalDateTime.now());
         boolean result = this.save(user);
         if (!result) {
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "添加用户失败");
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_INSERT_FAILED);
         }
         // 添加ak,sk
         Long userId = user.getId();
@@ -117,38 +127,38 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         // 校验账户名与密码是否合法
         // 用户账户名 密码 校验密码不能为空或者空字符串
         if (StringUtils.isAllBlank(userAccount, password)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账号或密码或确认码为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, CREDENTIAL_INCOMPLETE);
         }
         // 账户名的长度要求 6-20 密码的长度要求 6-20
         if (userAccount.length() < 6 || userAccount.length() > 20) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账户名长度不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_LENGTH_INVALID);
         }
         if (password.length() < 6 || password.length() > 20) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "密码长度不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PASSWORD_LENGTH_INVALID);
         }
         // 账户名里面不能有特殊字符 是字母 数字 下划线 中划线 密码 是字母数字常见特殊字符
         if (!RegexUtils.isValidUserAccount(userAccount)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账户名包含字符不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_FORMAT_INVALID);
         }
         if (!RegexUtils.isValidPassword(password)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "密码包含字符不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PASSWORD_FORMAT_INVALID);
         }
         // 根据用户名查询用户看是否存在
         QueryWrapper<User> queryWrapper = new QueryWrapper<>();
         queryWrapper.eq("user_account", userAccount);
         User user = this.getOne(queryWrapper);
         if (user == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户名或密码错误");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_OR_PASSWORD_INCORRECT);
         }
         // 如果存在 将将要校验的密码与数据库的密码比对看是否一致
         String md5Hex = DigestUtils.md5Hex(password);
         if (!md5Hex.equals(user.getPassword())) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "用户名或密码错误");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_OR_PASSWORD_INCORRECT);
         }
         // 如果一致 登录成功 发放token
         Map<String, Object> dataMap = new HashMap<>();
-        dataMap.put("id", user.getId());
-        dataMap.put("userAccount", user.getUserAccount());
+        dataMap.put(TOKEN_PAYLOAD_KEY_1, user.getId());
+        dataMap.put(TOKEN_PAYLOAD_KEY_2, user.getUserAccount());
         String token = JwtUtils.generateToken(dataMap);
         log.info("用户登录成功");
         return new UserLoginVO(user.getId(), user.getUserAccount(), token);
@@ -162,7 +172,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         List<UserImportRequest> userImportRequestList = ExcelParseUtil.parseExcel(file, UserImportRequest.class);
 
         if (CollectionUtils.isEmpty(userImportRequestList)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "上传的表格为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, FILE_EMPTY);
         }
 
         int total = userImportRequestList.size();
@@ -311,7 +321,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
             }).toList();
             List<BatchResult> batchResults = userMapper.insert(list);
             if (batchResults.isEmpty()) {
-                throw new BusinessException(ErrorCode.DATABASE_ERROR, "导入失败");
+                throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_INSERT_FAILED);
             }
             List<UserVO> userVOList = getUserVO(list);
             return UserImportVO.success(total, userVOList);

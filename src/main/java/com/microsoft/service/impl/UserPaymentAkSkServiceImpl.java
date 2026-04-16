@@ -10,6 +10,7 @@ import com.microsoft.mapper.UserPaymentAkSkMapper;
 import com.microsoft.model.dto.userPaymentAkSk.GenerateAkSkRequest;
 import com.microsoft.model.entity.User;
 import com.microsoft.model.entity.UserPaymentAkSk;
+import com.microsoft.model.enums.UserPaymentAkSkStatusEnum;
 import com.microsoft.model.vo.GenerateAkSkVO;
 import com.microsoft.service.UserPaymentAkSkService;
 import com.microsoft.utils.AkSkGenerator;
@@ -18,6 +19,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
+
+import static com.microsoft.constant.ErrorDescriptionConstant.*;
 
 @Slf4j
 @Service
@@ -32,15 +35,17 @@ class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMapper, User
      */
     @Transactional(rollbackFor = Exception.class)
     public GenerateAkSkVO payAndGenerateAkSk(GenerateAkSkRequest request) {
+        if (request == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
+        }
         Long userId = request.getUserId();
         Integer payDays = request.getPayDays();
         
         // 1. 校验用户存在
         User user = userMapper.selectById(userId);
         if (user == null) {
-            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, "用户不存在");
+            throw new BusinessException(ErrorCode.NOT_FOUND_ERROR, OBJECT_NOT_FOUND);
         }
-        log.info("用户：{}存在",userId);
 
         // 2. 查询/初始化用户的付费+AK/SK记录（未付费则初始化）
         LambdaQueryWrapper<UserPaymentAkSk> queryWrapper = new LambdaQueryWrapper<UserPaymentAkSk>()
@@ -49,7 +54,6 @@ class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMapper, User
         
         // 初始化未付费用户记录（AK/SK全NULL）
         if (paymentAkSk == null) {
-            log.info("用户无付费记录，新建付费记录");
             paymentAkSk = new UserPaymentAkSk();
             paymentAkSk.setUserId(userId);
             paymentAkSkMapper.insert(paymentAkSk);
@@ -61,13 +65,11 @@ class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMapper, User
         String ak = AkSkGenerator.generateAK(String.valueOf(userId));
         String sk = AkSkGenerator.generateSK();
         String[] skHashAndSalt = AkSkGenerator.hashSecretKey(sk);
-        log.info("生成AK、SK");
 
         // 5. 设置付费服务期限
         LocalDateTime now = LocalDateTime.now();
         LocalDateTime serviceStartTime = now;
         LocalDateTime serviceEndTime = now.plusDays(payDays);
-        log.info("设置付费服务期限");
 
         // 6. 更新合并表
         LambdaUpdateWrapper<UserPaymentAkSk> updateWrapper = new LambdaUpdateWrapper<UserPaymentAkSk>()
@@ -114,7 +116,7 @@ class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMapper, User
     @Override
     public UserPaymentAkSk getValidAkSk(Long userId) {
         if (userId == null || userId <= 0) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "查询所传递的用户ID为空或非法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
         }
 
         // 查询用户的 AK/SK记录
@@ -124,20 +126,19 @@ class UserPaymentAkSkServiceImpl extends ServiceImpl<UserPaymentAkSkMapper, User
 
         // 校验是否存在记录
         if (paymentAkSk == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请先注册获取 AK/SK");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, OBJECT_NOT_FOUND);
         }
 
         // 校验 AK/SK 状态
-        if (paymentAkSk.getAkskStatus() != 1) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "AK/SK 已禁用，无法调用接口");
+        if (UserPaymentAkSkStatusEnum.STATUS_BANNED.getValue().equals(paymentAkSk.getAkskStatus())) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, AK_SK_BANNED);
         }
 
         // 校验是否过期
         LocalDateTime now = LocalDateTime.now();
         if (paymentAkSk.getServiceEndTime() != null && paymentAkSk.getServiceEndTime().isBefore(now)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "服务已过期，请续费");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, AK_SK_EXPIRED);
         }
-
         return paymentAkSk;
     }
 }

@@ -9,7 +9,6 @@ import com.microsoft.model.dto.user.UserUpdateRequest;
 import com.microsoft.model.entity.User;
 import com.microsoft.model.dto.user.UserLoginRequest;
 import com.microsoft.model.dto.user.UserRegisterRequest;
-import com.microsoft.model.vo.GenerateAkSkVO;
 import com.microsoft.model.vo.UserImportVO;
 import com.microsoft.model.vo.UserLoginVO;
 import com.microsoft.model.vo.UserVO;
@@ -25,6 +24,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
+import static com.microsoft.constant.ErrorDescriptionConstant.*;
 import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 
 @Tag(name = "用户模块", description = "用户的增删改查接口")
@@ -32,10 +32,8 @@ import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 @RestController
 @RequestMapping("/user")
 public class UserController {
-
     @Resource
     private UserService userService;
-
     /**
      * 用户注册
      */
@@ -43,14 +41,14 @@ public class UserController {
     public Result<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
             // 参数为空错误
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "前端传过来的参数为null");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         String userAccount = userRegisterRequest.getUserAccount();
         String password = userRegisterRequest.getPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
         if (StringUtils.isAllBlank(userAccount, password, checkPassword)) {
             // 参数为空串
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账户名或密码或确认码为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, CREDENTIAL_INCOMPLETE);
         }
         Long userId = userService.userRegister(userAccount, password, checkPassword);
         return Result.success(userId);
@@ -62,14 +60,12 @@ public class UserController {
     @PostMapping("/login")
     public Result<UserLoginVO> userLogin(@RequestBody UserLoginRequest userLoginRequest) {
         if (userLoginRequest == null) {
-            // 参数为空错误
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "前端传过来的参数为null");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         String userAccount = userLoginRequest.getUserAccount();
         String password = userLoginRequest.getPassword();
         if (StringUtils.isAllBlank(userAccount, password)) {
-            // 参数为空串
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "账户名或密码为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, LOGIN_CREDENTIAL_EMPTY);
         }
         UserLoginVO userLoginVO = userService.userLogin(userAccount, password);
         return Result.success(userLoginVO);
@@ -81,7 +77,7 @@ public class UserController {
     @PutMapping("/update")
     public Result<Void> updateUserInfo(@RequestBody UserUpdateRequest userInfoToUpdate) {
         if (userInfoToUpdate == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "无法获取更新后用户信息");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         Long currentId = CurrentHold.getCurrentId();
         User user = new User();
@@ -89,9 +85,8 @@ public class UserController {
         user.setId(currentId);
         boolean update = userService.updateById(user);
         if (!update) {
-            throw new BusinessException(ErrorCode.DATABASE_ERROR, "更新用户信息失败");
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_UPDATE_FAILED);
         }
-        log.info("编辑个人信息");
         return Result.success();
     }
 
@@ -108,7 +103,6 @@ public class UserController {
         // 用户信息脱敏
         List<User> list = userService.list(queryWrapper);
         List<UserVO> userVOList = userService.getUserVO(list);
-        log.info("管理员获取用户列表");
         return Result.success(userVOList);
     }
 
@@ -119,7 +113,7 @@ public class UserController {
     @AuthCheck(mustRole = ADMIN_ROLE)
     public Result<UserImportVO> batchImportUser(MultipartFile file) {
         if (file.isEmpty()) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "上传文件为空");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, FILE_EMPTY);
         }
         UserImportVO userImportVO = userService.verifyAndBatchImportUser(file);
         return Result.success(userImportVO);
@@ -131,8 +125,6 @@ public class UserController {
     @GetMapping("/current")
     public Result<UserVO> getCurrentUser() {
         Long currentId = CurrentHold.getCurrentId();
-        // 返回用户信息
-        log.info("获取当前登录用户的信息");
         User user = userService.getById(currentId);
         UserVO userVO = userService.getUserVO(user);
         return Result.success(userVO);
@@ -145,8 +137,7 @@ public class UserController {
     @PostMapping("/delete")
     public Result<Void> deleteUser(@RequestBody Long id) {
         if (id <= 0) {
-            // 参数不合法
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "前端传来的参数id不合法");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_FORMAT_ERROR);
         }
         userService.removeById(id);
         return Result.success();

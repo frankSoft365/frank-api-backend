@@ -11,6 +11,7 @@ import com.microsoft.mapper.UserMapper;
 import com.microsoft.model.dto.interfaceinfo.InterfaceInfoQueryRequest;
 import com.microsoft.model.entity.InterfaceInfo;
 import com.microsoft.model.entity.User;
+import com.microsoft.model.enums.InterfaceInfoStatusEnum;
 import com.microsoft.model.vo.InterfaceInfoVO;
 import com.microsoft.service.InterfaceInfoService;
 import jakarta.annotation.Resource;
@@ -23,6 +24,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+
+import static com.microsoft.constant.CommonConstant.API_PATH_START_WITH;
+import static com.microsoft.constant.ErrorDescriptionConstant.*;
 
 @Slf4j
 @Service
@@ -37,7 +41,7 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
     @Override
     public void validInterfaceInfo(InterfaceInfo interfaceInfo, boolean update) {
         if (interfaceInfo == null) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "无添加接口信息");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         String name = interfaceInfo.getName();
         String url = interfaceInfo.getUrl();
@@ -48,24 +52,24 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         String method = interfaceInfo.getMethod();
         // 必填项：（接口状态是有默认值必填项）
         if (StringUtils.isAnyBlank(name, url, method)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "接口名称、地址、请求方法是必填项！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, INTERFACE_REQUIRED_FIELDS_MISSING);
         }
         // url只给出path，以 / 开头
-        if (!url.startsWith("/")) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "接口路径应以“/”开头");
+        if (!url.startsWith(API_PATH_START_WITH)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, INTERFACE_PATH_INVALID);
         }
         // 非必填项：
         if (StringUtils.isNotBlank(requestHeader) && requestHeader.length() > 15000) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求头过长！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, REQUEST_HEADER_TOO_LONG);
         }
         if (StringUtils.isNotBlank(responseHeader) && responseHeader.length() > 15000) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "响应头过长！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, RESPONSE_HEADER_TOO_LONG);
         }
         if (StringUtils.isNotBlank(requestParam) && requestParam.length() > 15000) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "请求参数过长！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, REQUEST_PARAM_TOO_LONG);
         }
         if (StringUtils.isNotBlank(description) && description.length() > 256) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "接口描述过长！");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, INTERFACE_DESC_TOO_LONG);
         }
         // 校验 URL 唯一性
         if (StringUtils.isNotBlank(url)) {
@@ -77,7 +81,7 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
             }
             InterfaceInfo existingInterface = this.getOne(queryWrapper);
             if (existingInterface != null) {
-                throw new BusinessException(ErrorCode.PARAM_ERROR, "接口请求路径已存在，不允许重复添加或修改！");
+                throw new BusinessException(ErrorCode.PARAM_ERROR, INTERFACE_PATH_DUPLICATE);
             }
         }
     }
@@ -105,8 +109,9 @@ public class InterfaceInfoServiceImpl extends ServiceImpl<InterfaceInfoMapper, I
         String url = interfaceInfoQueryRequest.getUrl();
         String description = interfaceInfoQueryRequest.getDescription();
         Integer status = interfaceInfoQueryRequest.getStatus();
-        if (status != null && !Integer.valueOf(0).equals(status) && !Integer.valueOf(1).equals(status)) {
-            throw new BusinessException(ErrorCode.PARAM_ERROR, "接口状态错误！");
+        // 状态允许是空的查询条件
+        if (status != null && !InterfaceInfoStatusEnum.isValidValue(status)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, INTERFACE_STATUS_INVALID);
         }
         String method = interfaceInfoQueryRequest.getMethod();
         if (StringUtils.isNotBlank(name)) {

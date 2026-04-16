@@ -2,6 +2,7 @@ package com.microsoft.service.impl.rpc;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.microsoft.frankapisdk.commen.ErrorCode;
+import com.microsoft.frankapisdk.constant.ErrorMessageConstant;
 import com.microsoft.frankapisdk.constant.SignatureRequestHeadersConstant;
 import com.microsoft.frankapisdk.service.SignatureVerifyService;
 import com.microsoft.frankapisdk.service.model.dto.SignatureVerifyResponse;
@@ -30,37 +31,34 @@ public class SignatureVerifyServiceImpl implements SignatureVerifyService {
     public SignatureVerifyResponse verifySignature(String accessKey,
                                                    String requestMethod,
                                                    String requestPath,
-                                                   Long interfaceId,
                                                    String signatureVersion,
                                                    String signatureMethod,
                                                    Long timestamp,
                                                    String businessData,
                                                    String clientSignature) {
-        QueryWrapper<UserPaymentAkSk> queryWrapper = new QueryWrapper<>();
-        queryWrapper.eq("access_key", accessKey);
-        UserPaymentAkSk userPaymentAkSk = userPaymentAkSkService.getOne(queryWrapper);
+        QueryWrapper<UserPaymentAkSk> userPaymentAkSkQueryWrapper = new QueryWrapper<>();
+        userPaymentAkSkQueryWrapper.eq("access_key", accessKey);
+        UserPaymentAkSk userPaymentAkSk = userPaymentAkSkService.getOne(userPaymentAkSkQueryWrapper);
         if (userPaymentAkSk == null) {
-            return SignatureVerifyResponse.error(ErrorCode.InvalidParameter.getCode(), "AccessKey错误");
+            return SignatureVerifyResponse.error(ErrorCode.InvalidParameter.getCode(), ErrorMessageConstant.InvalidParameter_001);
         }
         if (UserPaymentAkSkStatusEnum.STATUS_BANNED.getValue().equals(userPaymentAkSk.getAkskStatus())) {
-            return SignatureVerifyResponse.error(ErrorCode.Forbidden.getCode(), "AccessKey已禁用或过期");
+            return SignatureVerifyResponse.error(ErrorCode.Forbidden.getCode(), ErrorMessageConstant.Forbidden_001);
         }
         if (userPaymentAkSk.getServiceEndTime() != null && userPaymentAkSk.getServiceEndTime().isBefore(LocalDateTime.now())) {
-            return SignatureVerifyResponse.error(ErrorCode.Forbidden.getCode(), "AccessKey已过服务期限");
+            return SignatureVerifyResponse.error(ErrorCode.Forbidden.getCode(), ErrorMessageConstant.Forbidden_002);
         }
-        // 验证接口 ID 存在性
-        InterfaceInfo interfaceInfo = interfaceInfoService.getById(interfaceId);
+        // 验证接口存在性
+        QueryWrapper<InterfaceInfo> interfaceInfoQueryWrapper = new QueryWrapper<>();
+        interfaceInfoQueryWrapper.eq("url", requestPath);
+        interfaceInfoQueryWrapper.eq("method", requestMethod);
+        InterfaceInfo interfaceInfo = interfaceInfoService.getOne(interfaceInfoQueryWrapper);
         if (interfaceInfo == null) {
-            return SignatureVerifyResponse.error(ErrorCode.ActionUnavailable.getCode(), "接口不存在（ID: " + interfaceId + "）");
+            return SignatureVerifyResponse.error(ErrorCode.ActionUnavailable.getCode(), ErrorMessageConstant.ActionUnavailable_001);
         }
         // 验证接口状态
         if (interfaceInfo.getStatus() == null || interfaceInfo.getStatus() == InterfaceInfoStatusEnum.OFFLINE.getValue()) {
-            return SignatureVerifyResponse.error(ErrorCode.ActionUnavailable.getCode(), "当前接口处于停服维护状态，请稍后重试");
-        }
-        // 数据库中的请求路径
-        String interfaceInfoPath = interfaceInfo.getUrl();
-        if (!interfaceInfoPath.equals(requestPath) || !interfaceInfo.getMethod().equals(requestMethod)) {
-            return SignatureVerifyResponse.error(ErrorCode.InvalidParameter.getCode(), "接口ID错误");
+            return SignatureVerifyResponse.error(ErrorCode.ActionUnavailable.getCode(), ErrorMessageConstant.ActionUnavailable_002);
         }
         // 生成签名
         Map<String, String> params = new HashMap<>();
@@ -68,7 +66,6 @@ public class SignatureVerifyServiceImpl implements SignatureVerifyService {
         params.put(SignatureRequestHeadersConstant.SIGNATURE_METHOD, signatureMethod);
         params.put(SignatureRequestHeadersConstant.ACCESS_KEY_ID, accessKey);
         params.put(SignatureRequestHeadersConstant.TIMESTAMP, String.valueOf(timestamp));
-        params.put(SignatureRequestHeadersConstant.INTERFACE_ID, String.valueOf(interfaceId));
         if (businessData != null) {
             params.put(SignatureRequestHeadersConstant.BUSINESS_DATA, businessData);
         }
@@ -79,10 +76,11 @@ public class SignatureVerifyServiceImpl implements SignatureVerifyService {
         String serverSignature = CloudSignUtils.generateSignByAllParams(secretKey, params, requestMethod, requestPath);
         // 校验签名
         if (!serverSignature.equals(clientSignature)) {
-            return SignatureVerifyResponse.error(ErrorCode.SignatureFailure.getCode(), "身份认证失败，签名不匹配");
+            return SignatureVerifyResponse.error(ErrorCode.SignatureFailure.getCode(), ErrorMessageConstant.SignatureFailure_001);
         }
         // 签名正确
         Long userId = userPaymentAkSk.getUserId();
-        return SignatureVerifyResponse.success(userId);
+        Long interfaceInfoId = interfaceInfo.getId();
+        return SignatureVerifyResponse.success(userId, interfaceInfoId);
     }
 }
