@@ -144,6 +144,7 @@ public class InterfaceInfoController {
                 throw new BusinessException(ErrorCode.SYSTEM_ERROR, INTERFACE_CONNECTION_ERROR);
             }
         } catch (Exception e) {
+            log.error("Exception : {}, message : {}", e, e.getMessage());
             throw new BusinessException(ErrorCode.SYSTEM_ERROR, INTERFACE_CONNECTION_ERROR);
         }
         // 修改接口状态为 发布

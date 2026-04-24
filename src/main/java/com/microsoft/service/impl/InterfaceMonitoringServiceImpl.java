@@ -8,15 +8,14 @@ import com.microsoft.constant.CommonConstant;
 import com.microsoft.constant.InterfaceMonitoringConstant;
 import com.microsoft.exception.BusinessException;
 import com.microsoft.mapper.InterfaceLogMapper;
+import com.microsoft.mapper.UserInterfaceCallCountMapper;
 import com.microsoft.model.dto.interfaceMonitoring.InterfaceStatQueryDTO;
 import com.microsoft.model.dto.interfaceMonitoring.MonitorOverviewQueryDTO;
 import com.microsoft.model.dto.interfaceMonitoring.UserCallRankQueryDTO;
+import com.microsoft.model.dto.interfaceMonitoring.UserInterfaceLogQueryDTO;
 import com.microsoft.model.entity.InterfaceLog;
 import com.microsoft.model.enums.InterfaceLogSuccessEnum;
-import com.microsoft.model.vo.interfaceMonitoring.InterfaceStatVO;
-import com.microsoft.model.vo.interfaceMonitoring.MonitorOverviewVO;
-import com.microsoft.model.vo.interfaceMonitoring.TimeValueVO;
-import com.microsoft.model.vo.interfaceMonitoring.UserCallRankVO;
+import com.microsoft.model.vo.interfaceMonitoring.*;
 import com.microsoft.service.InterfaceMonitoringService;
 import jakarta.annotation.Resource;
 import org.apache.commons.lang3.StringUtils;
@@ -43,6 +42,8 @@ public class InterfaceMonitoringServiceImpl implements InterfaceMonitoringServic
     private static final String CALL_TREND_HOUR_PATTERN = "HH:00";
     @Resource
     private InterfaceLogMapper interfaceLogMapper;
+    @Resource
+    private UserInterfaceCallCountMapper userInterfaceCallCountMapper;
 
     @Override
     public MonitorOverviewVO getAdminMonitorOverviewVO(MonitorOverviewQueryDTO queryDTO) {
@@ -64,11 +65,6 @@ public class InterfaceMonitoringServiceImpl implements InterfaceMonitoringServic
                     new ArrayList<>()
             );
         }
-        // 根据startTime和endTime查询
-        //    private Long totalCall;    // 总调用次数
-        //    private Double successRate;// 成功率 %
-        //    private Double avgCost;    // 平均耗时 ms
-        //    private List<TimeValueVO> callTrend;
         QueryWrapper<InterfaceLog> queryWrapper = new QueryWrapper<>();
         queryWrapper.ge("create_time", startTime);
         queryWrapper.le("create_time", endTime);
@@ -189,6 +185,122 @@ public class InterfaceMonitoringServiceImpl implements InterfaceMonitoringServic
         return interfaceLogMapper.selectUserCallRankVOList(page, queryWrapper);
     }
 
+    @Override
+    public MonitorOverviewVO getUserMonitorOverviewVO(MonitorOverviewQueryDTO queryDTO, Long userId) {
+        if (queryDTO == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
+        }
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
+        }
+        LocalDateTime startTime = queryDTO.getStartTime();
+        LocalDateTime endTime = queryDTO.getEndTime();
+        LocalDateTime queryTime = queryDTO.getQueryTime();
+        long daysBetween = validateTimeQuery(startTime, endTime, queryTime);
+        boolean exceedMaxHistoryDays = isExceedMaxHistoryDays(startTime, queryTime);
+        if (exceedMaxHistoryDays) {
+            return new MonitorOverviewVO(
+                    0L,
+                    0.0,
+                    0.0,
+                    new ArrayList<>()
+            );
+        }
+        QueryWrapper<InterfaceLog> queryWrapper = new QueryWrapper<>();
+        queryWrapper.ge("create_time", startTime);
+        queryWrapper.le("create_time", endTime);
+        queryWrapper.eq("user_id", userId);
+        List<InterfaceLog> logList = interfaceLogMapper.selectList(queryWrapper);
+        long totalCall = logList.size();
+        // 没有记录
+        if (totalCall == 0) {
+            return new MonitorOverviewVO(
+                    totalCall,
+                    0.0,
+                    0.0,
+                    new ArrayList<>()
+            );
+        }
+        // 有记录
+        // 获取成功率（保留1位小数）
+        long successCount = logList.stream()
+                .filter(log -> InterfaceLogSuccessEnum.SUCCESS.getValue().equals(log.getSuccess()))
+                .count();
+        double successRate = Math.round(successCount / ((double) totalCall) * 1000) / 10.0;
+        // 获取平均耗时
+        double avgCost = logList.stream()
+                .mapToLong(InterfaceLog::getCostTime)
+                .average()
+                .orElse(0.0);
+        // 获取调用趋势
+        List<TimeValueVO> callTrend = generateCallTrend(logList, startTime, daysBetween);
+        return new MonitorOverviewVO(
+                totalCall,
+                successRate,
+                avgCost,
+                callTrend
+        );
+    }
+
+    @Override
+    public IPage<UserInterfaceLogVO> getUserInterfaceLogVOList(UserInterfaceLogQueryDTO queryDTO, Long userId) {
+        if (queryDTO == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
+        }
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
+        }
+        int current = queryDTO.getCurrent();
+        int pageSize = queryDTO.getPageSize();
+        LocalDateTime startTime = queryDTO.getStartTime();
+        LocalDateTime endTime = queryDTO.getEndTime();
+        LocalDateTime queryTime = queryDTO.getQueryTime();
+        String interfacePath = queryDTO.getInterfacePath();
+        String requestMethod = queryDTO.getRequestMethod();
+        Integer requestResult = queryDTO.getRequestResult();
+        validateTimeQuery(startTime, endTime, queryTime);
+        boolean exceedMaxHistoryDays = isExceedMaxHistoryDays(startTime, queryTime);
+        if (exceedMaxHistoryDays) {
+            IPage<UserInterfaceLogVO> emptyPage = createEmptyPage();
+            return emptyPage;
+        }
+        Page<UserInterfaceLogVO> page = new Page<>(current, pageSize);
+        QueryWrapper<InterfaceLog> queryWrapper = new QueryWrapper<>();
+        queryWrapper.ge("create_time", startTime);
+        queryWrapper.le("create_time", endTime);
+        queryWrapper.eq("user_id", userId);
+        if (StringUtils.isNotBlank(interfacePath)) {
+            queryWrapper.like("interface_url", interfacePath);
+        }
+        if (StringUtils.isNotBlank(requestMethod)) {
+            queryWrapper.eq("request_method", requestMethod);
+        }
+        if (requestResult != null) {
+            queryWrapper.eq("success", requestResult);
+        }
+        queryWrapper.orderBy(true, false, "requestTime");
+        return interfaceLogMapper.selectUserInterfaceLogVOList(page, queryWrapper);
+    }
+
+    @Override
+    public UserCallDistributionVO getUserCallDistributionVO(Long userId) {
+        if (userId == null || userId <= 0 ) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_INVALID);
+        }
+        UserCallDistributionVO userCallDistributionVO = new UserCallDistributionVO();
+        Integer totalSuccessCount = userInterfaceCallCountMapper.selectUserTotalCount(userId);
+        userCallDistributionVO.setTotalSuccessCount(totalSuccessCount);
+        List<InterfacePathCountVO> callDistribution = userInterfaceCallCountMapper.selectCallDistribution(userId);
+        userCallDistributionVO.setCallDistribution(callDistribution);
+        return userCallDistributionVO;
+    }
+
+    /**
+     * 判断起始时间是否超过 最大限制查询历史时间
+     * @param startTime 起始时间
+     * @param queryTime 发起查询时间
+     * @return true：超过了 false：合法没有超过
+     */
     private boolean isExceedMaxHistoryDays(LocalDateTime startTime, LocalDateTime queryTime) {
         LocalDate earliestDate = queryTime.toLocalDate().minusDays(MAX_HISTORY_DAYS - 1);
         LocalDateTime earliestDateTime = LocalDateTime.of(earliestDate, LocalTime.MIN);
@@ -203,6 +315,13 @@ public class InterfaceMonitoringServiceImpl implements InterfaceMonitoringServic
     }
 
 
+    /**
+     * 校验时间范围参数：空值、时间起始与结束合法、时间间隔合法并可选返回时间间隔
+     * @param startTime 起始时间
+     * @param endTime 结束时间
+     * @param queryTime 发起查询的时间
+     * @return 合法的时间间隔
+     */
     private long validateTimeQuery(LocalDateTime startTime, LocalDateTime endTime, LocalDateTime queryTime) {
         if (startTime == null || endTime == null || queryTime == null) {
             throw new BusinessException(ErrorCode.PARAM_ERROR, QUERY_TIME_EMPTY);

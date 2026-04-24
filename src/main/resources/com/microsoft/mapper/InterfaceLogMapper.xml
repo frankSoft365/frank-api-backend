@@ -29,4 +29,17 @@
         ${ew.customSqlSegment}
     </select>
 
+    <select id="selectUserInterfaceLogVOList" resultType="com.microsoft.model.vo.interfaceMonitoring.UserInterfaceLogVO">
+        select
+            request_id as requestId,
+            create_time as requestTime,
+            interface_url as interfacePath,
+            request_method as requestMethod,
+            success as success,
+            cost_time as costTime,
+            error_message as errorMessage
+        from interface_log
+                 ${ew.customSqlSegment}
+    </select>
+
 </mapper>

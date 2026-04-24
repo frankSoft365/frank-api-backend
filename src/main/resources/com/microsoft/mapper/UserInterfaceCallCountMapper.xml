@@ -10,4 +10,20 @@
             ON DUPLICATE KEY UPDATE total_count = total_count + 1
     </insert>
 
+    <select id="selectUserTotalCount" resultType="java.lang.Integer">
+        select
+            sum(total_count)
+        from user_interface_call_count
+        where
+            user_id=#{userId}
+    </select>
+
+    <select id="selectCallDistribution" resultType="com.microsoft.model.vo.interfaceMonitoring.InterfacePathCountVO">
+        select
+            i.url as interfacePath,
+            u.total_count as successCount
+        from user_interface_call_count u
+        inner join interface_info i on u.interface_info_id=i.id
+        where u.user_id=#{userId}
+    </select>
 </mapper>

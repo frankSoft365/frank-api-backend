@@ -2,19 +2,19 @@ package com.microsoft.controller;
 
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.microsoft.annotation.AuthCheck;
+import com.microsoft.commen.ErrorCode;
 import com.microsoft.commen.Result;
+import com.microsoft.constant.ErrorDescriptionConstant;
+import com.microsoft.exception.BusinessException;
 import com.microsoft.model.dto.interfaceMonitoring.InterfaceStatQueryDTO;
 import com.microsoft.model.dto.interfaceMonitoring.MonitorOverviewQueryDTO;
 import com.microsoft.model.dto.interfaceMonitoring.UserCallRankQueryDTO;
-import com.microsoft.model.vo.interfaceMonitoring.InterfaceStatVO;
-import com.microsoft.model.vo.interfaceMonitoring.MonitorOverviewVO;
-import com.microsoft.model.vo.interfaceMonitoring.UserCallRankVO;
+import com.microsoft.model.dto.interfaceMonitoring.UserInterfaceLogQueryDTO;
+import com.microsoft.model.vo.interfaceMonitoring.*;
 import com.microsoft.service.InterfaceMonitoringService;
+import com.microsoft.utils.CurrentHold;
 import jakarta.annotation.Resource;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import static com.microsoft.constant.UserConstant.ADMIN_ROLE;
 
@@ -57,5 +57,48 @@ public class InterfaceMonitoringController {
     ) {
         IPage<UserCallRankVO> userCallRankVOList = interfaceMonitoringService.getAdminUserCallRankVOList(queryDTO);
         return Result.success(userCallRankVOList);
+    }
+
+    /**
+     * 用户调用总览
+     */
+    @PostMapping("/overview/user")
+    public Result<MonitorOverviewVO> getUserMonitorOverviewVO(
+            @RequestBody MonitorOverviewQueryDTO queryDTO
+    ) {
+        Long userId = CurrentHold.getCurrentId();
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, ErrorDescriptionConstant.PARAM_INVALID);
+        }
+        MonitorOverviewVO userMonitorOverviewVO = interfaceMonitoringService.getUserMonitorOverviewVO(queryDTO, userId);
+        return Result.success(userMonitorOverviewVO);
+    }
+
+    /**
+     * 用户调用日志
+     */
+    @PostMapping("/interfaceLog/user")
+    public Result<IPage<UserInterfaceLogVO>> getUserInterfaceLogVO(
+            @RequestBody UserInterfaceLogQueryDTO queryDTO
+    ) {
+        Long userId = CurrentHold.getCurrentId();
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, ErrorDescriptionConstant.PARAM_INVALID);
+        }
+        IPage<UserInterfaceLogVO> userInterfaceLogVOList = interfaceMonitoringService.getUserInterfaceLogVOList(queryDTO, userId);
+        return Result.success(userInterfaceLogVOList);
+    }
+
+    /**
+     * 用户调用分布
+     */
+    @GetMapping("/callDistribution/user")
+    public Result<UserCallDistributionVO> getUserCallDistributionVO() {
+        Long userId = CurrentHold.getCurrentId();
+        if (userId == null || userId <= 0) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, ErrorDescriptionConstant.PARAM_INVALID);
+        }
+        UserCallDistributionVO userCallDistributionVO = interfaceMonitoringService.getUserCallDistributionVO(userId);
+        return Result.success(userCallDistributionVO);
     }
 }

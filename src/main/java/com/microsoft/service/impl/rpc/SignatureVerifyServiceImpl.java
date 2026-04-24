@@ -36,6 +36,31 @@ public class SignatureVerifyServiceImpl implements SignatureVerifyService {
                                                    Long timestamp,
                                                    String businessData,
                                                    String clientSignature) {
+        return verifySignatureOrigin(accessKey, requestMethod, requestPath, signatureVersion, signatureMethod, timestamp, businessData, clientSignature, false);
+    }
+
+    @Override
+    public SignatureVerifyResponse verifySignatureTest(String accessKey,
+                                                       String requestMethod,
+                                                       String requestPath,
+                                                       String signatureVersion,
+                                                       String signatureMethod,
+                                                       Long timestamp,
+                                                       String businessData,
+                                                       String clientSignature) {
+        return verifySignatureOrigin(accessKey, requestMethod, requestPath, signatureVersion, signatureMethod, timestamp, businessData, clientSignature, true);
+    }
+
+    private SignatureVerifyResponse verifySignatureOrigin(String accessKey,
+                                                          String requestMethod,
+                                                          String requestPath,
+                                                          String signatureVersion,
+                                                          String signatureMethod,
+                                                          Long timestamp,
+                                                          String businessData,
+                                                          String clientSignature,
+                                                          boolean isTest
+    ) {
         QueryWrapper<UserPaymentAkSk> userPaymentAkSkQueryWrapper = new QueryWrapper<>();
         userPaymentAkSkQueryWrapper.eq("access_key", accessKey);
         UserPaymentAkSk userPaymentAkSk = userPaymentAkSkService.getOne(userPaymentAkSkQueryWrapper);
@@ -57,7 +82,7 @@ public class SignatureVerifyServiceImpl implements SignatureVerifyService {
             return SignatureVerifyResponse.error(ErrorCode.ActionUnavailable.getCode(), ErrorMessageConstant.ActionUnavailable_001);
         }
         // 验证接口状态
-        if (interfaceInfo.getStatus() == null || interfaceInfo.getStatus() == InterfaceInfoStatusEnum.OFFLINE.getValue()) {
+        if (!isTest && (interfaceInfo.getStatus() == null || interfaceInfo.getStatus().equals(InterfaceInfoStatusEnum.OFFLINE.getValue()))) {
             return SignatureVerifyResponse.error(ErrorCode.ActionUnavailable.getCode(), ErrorMessageConstant.ActionUnavailable_002);
         }
         // 生成签名
@@ -71,7 +96,6 @@ public class SignatureVerifyServiceImpl implements SignatureVerifyService {
         }
         // 拿到数据库中的secretKey
         String secretKey = userPaymentAkSk.getSecretKeyHash();
-
         // 服务端根据请求参数和用户的隐蔽secretKey以同样方式生成签名
         String serverSignature = CloudSignUtils.generateSignByAllParams(secretKey, params, requestMethod, requestPath);
         // 校验签名
