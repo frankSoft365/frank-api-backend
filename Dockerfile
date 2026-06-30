@@ -5,6 +5,8 @@ WORKDIR /app
 ARG GITHUB_TOKEN
 ENV GITHUB_TOKEN=${GITHUB_TOKEN}
 
+RUN apt-get update && apt-get install -y maven
+
 COPY pom.xml .
 COPY src ./src
 
@@ -22,7 +24,7 @@ RUN mkdir -p /root/.m2 && \
 </settings>
 EOF
 
-RUN mvn clean package -DskipTests -X 2>&1 | head -200
+RUN mvn clean package -DskipTests
 
 FROM eclipse-temurin:17-jre
 
