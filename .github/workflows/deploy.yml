@@ -54,6 +54,8 @@ jobs:
           username: ${{ secrets.SERVER_USERNAME }}
           key: ${{ secrets.SERVER_SSH_KEY }}
           script: |
-            cd /frank-api-backend
-            docker-compose pull
-            docker-compose up -d --force-recreate
+            whoami
+            pwd
+            ls /
+            ls /frank-api-backend 2>/dev/null || echo "directory not found"
+            cd /frank-api-backend && docker-compose pull && docker-compose up -d --force-recreate
