@@ -12,6 +12,7 @@ public class WebConfig implements WebMvcConfigurer {
     @Autowired
     private TokenInterceptor tokenInterceptor;
 
+    // 配置跨域请求
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
