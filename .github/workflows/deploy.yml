@@ -29,7 +29,7 @@ jobs:
           push: true
           tags: ${{ secrets.DOCKER_HUB_USERNAME }}/frank-api:latest
           build-args:
-            GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+            - GITHUB_TOKEN=${{ secrets.GITHUB_TOKEN }}
 
       - name: Build and push frank-api-interface
         uses: docker/build-push-action@v5
