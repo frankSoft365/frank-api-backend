@@ -76,6 +76,8 @@ services:
       FRANK_CLIENT_BASE_URL: ${FRANK_CLIENT_BASE_URL}
       NACOS_HOST: nacos
       NACOS_PORT: 8848
+      OSS_ACCESS_KEY_ID: ${OSS_ACCESS_KEY_ID}
+      OSS_ACCESS_KEY_SECRET: ${OSS_ACCESS_KEY_SECRET}
     ports:
       - "8088:8080"
     depends_on:
