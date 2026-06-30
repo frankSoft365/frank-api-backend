@@ -1,6 +1,7 @@
 package com.microsoft.controller;
 
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.microsoft.annotation.AuthCheck;
 import com.microsoft.commen.ErrorCode;
 import com.microsoft.commen.Result;
@@ -80,10 +81,24 @@ public class UserController {
             throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         Long currentId = CurrentHold.getCurrentId();
-        User user = new User();
-        BeanUtils.copyProperties(userInfoToUpdate, user);
-        user.setId(currentId);
-        boolean update = userService.updateById(user);
+        LambdaUpdateWrapper<User> updateWrapper = new LambdaUpdateWrapper<>();
+        updateWrapper.eq(User::getId, currentId);
+        if (StringUtils.isNotBlank(userInfoToUpdate.getUsername())) {
+            updateWrapper.set(User::getUsername, userInfoToUpdate.getUsername());
+        }
+        if (userInfoToUpdate.getGender() != null) {
+            updateWrapper.set(User::getGender, userInfoToUpdate.getGender());
+        }
+        if (StringUtils.isNotBlank(userInfoToUpdate.getPhone())) {
+            updateWrapper.set(User::getPhone, userInfoToUpdate.getPhone());
+        }
+        if (StringUtils.isNotBlank(userInfoToUpdate.getAvatar())) {
+            updateWrapper.set(User::getAvatar, userInfoToUpdate.getAvatar());
+        }
+        if (StringUtils.isNotBlank(userInfoToUpdate.getEmail())) {
+            updateWrapper.set(User::getEmail, userInfoToUpdate.getEmail());
+        }
+        boolean update = userService.update(updateWrapper);
         if (!update) {
             throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_UPDATE_FAILED);
         }
