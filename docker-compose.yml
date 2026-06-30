@@ -41,7 +41,7 @@ services:
       - frank-api-network
 
   frank-api-interface:
-    image: ${DOCKER_HUB_USERNAME}/frank-api-interface:latest
+    image: ghcr.io/franksoft365/frank-api-interface:latest
     container_name: frank-api-interface
     restart: always
     environment:
@@ -58,7 +58,7 @@ services:
       - frank-api-network
 
   frank-api:
-    image: ${DOCKER_HUB_USERNAME}/frank-api:latest
+    image: ghcr.io/franksoft365/frank-api:latest
     container_name: frank-api-app
     restart: always
     environment:
@@ -86,7 +86,7 @@ services:
       - frank-api-network
 
   frank-api-gateway:
-    image: ${DOCKER_HUB_USERNAME}/frank-api-gateway:latest
+    image: ghcr.io/franksoft365/frank-api-gateway:latest
     container_name: frank-api-gateway
     restart: always
     environment:
