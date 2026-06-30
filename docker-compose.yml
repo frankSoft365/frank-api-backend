@@ -41,7 +41,7 @@ services:
       - frank-api-network
 
   frank-api-interface:
-    image: ghcr.io/franksoft365/frank-api-interface:latest
+    build: ./interface
     container_name: frank-api-interface
     restart: always
     environment:
@@ -58,7 +58,7 @@ services:
       - frank-api-network
 
   frank-api:
-    image: ghcr.io/franksoft365/frank-api:latest
+    build: .
     container_name: frank-api-app
     restart: always
     environment:
@@ -88,7 +88,7 @@ services:
       - frank-api-network
 
   frank-api-gateway:
-    image: ghcr.io/franksoft365/frank-api-gateway:latest
+    build: ./gateway
     container_name: frank-api-gateway
     restart: always
     environment:
