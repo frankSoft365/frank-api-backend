@@ -1,11 +1,9 @@
-FROM maven:3.9.8-eclipse-temurin-17 AS builder
-# Copy local code to the container image.
+FROM eclipse-temurin:17-jre
+
 WORKDIR /app
-COPY pom.xml .
-COPY src ./src
 
-# Build a release artifact.
-RUN mvn package -DskipTests
+COPY target/frank-api-0.0.1-SNAPSHOT.jar app.jar
 
-# Run the web service on container startup.
-CMD ["java","-jar","/app/target/frank-api-0.0.1-SNAPSHOT.jar","--spring.profiles.active=prod"]
+EXPOSE 8080
+
+ENTRYPOINT ["java", "-jar", "app.jar", "--spring.profiles.active=prod"]

@@ -10,7 +10,6 @@ import com.microsoft.exception.BusinessException;
 import com.microsoft.mapper.UserMapper;
 import com.microsoft.model.entity.User;
 import com.microsoft.model.dto.user.UserImportRequest;
-import com.microsoft.model.vo.GenerateAkSkVO;
 import com.microsoft.model.vo.UserImportVO;
 import com.microsoft.model.vo.UserLoginVO;
 import com.microsoft.model.vo.UserVO;
@@ -26,7 +25,7 @@ import org.apache.commons.collections4.CollectionUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.ibatis.executor.BatchResult;
 import org.springframework.beans.BeanUtils;
-import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -56,6 +55,11 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
 
     @Resource
     private UserPaymentAkSkService userPaymentAkSkService;
+
+    @Resource
+    private RedisTemplate<String, Object> redisTemplate;
+
+    private static final String REDIS_KEY_PREFIX = "email:verifyCode:";
 
     /**
      * 用户注册 校验账户名和密码 将用户存入数据库 返回用户的id
@@ -116,6 +120,95 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements Us
         GenerateAkSkRequest generateAkSkRequest = new GenerateAkSkRequest(userId, payDays);
         userPaymentAkSkService.payAndGenerateAkSk(generateAkSkRequest);
         log.info("用户注册成功");
+        return userId;
+    }
+
+    /**
+     * 用户注册（带邮箱验证码）校验账户名、密码、邮箱和验证码 将用户存入数据库 返回用户的id
+     */
+    @Override
+    public Long userRegister(String userAccount, String password, String checkPassword, String email, String verifyCode) {
+        // 用户账户名 密码 校验密码不能为空或者空字符串
+        if (StringUtils.isAllBlank(userAccount, password, checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, CREDENTIAL_INCOMPLETE);
+        }
+        // 账户名的长度要求 6-20 密码的长度要求 6-20
+        if (userAccount.length() < MIN_USER_ACCOUNT_LENGTH || userAccount.length() > MAX_USER_ACCOUNT_LENGTH) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_LENGTH_INVALID);
+        }
+        if (password.length() < MIN_PASSWORD_LENGTH || password.length() > MAX_PASSWORD_LENGTH) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PASSWORD_LENGTH_INVALID);
+        }
+        // 账户名里面不能有特殊字符 是字母 数字 下划线 中划线 密码 是字母数字常见特殊字符
+        if (!RegexUtils.isValidUserAccount(userAccount)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_FORMAT_INVALID);
+        }
+        if (!RegexUtils.isValidPassword(password)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PASSWORD_FORMAT_INVALID);
+        }
+        // 校验密码和密码相同
+        if (!password.equals(checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, PASSWORD_AND_CODE_DO_NOT_MATCH);
+        }
+        // 邮箱非空校验
+        if (StringUtils.isBlank(email)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, EMAIL_EMPTY);
+        }
+        // 邮箱格式校验
+        if (!RegexUtils.isValidEmail(email)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, EMAIL_FORMAT_INVALID);
+        }
+        // 验证码非空校验
+        if (StringUtils.isBlank(verifyCode)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, VERIFY_CODE_EMPTY);
+        }
+        // 校验邮箱验证码
+        String redisKey = REDIS_KEY_PREFIX + email;
+        Object storedVerifyCodeObj = redisTemplate.opsForValue().get(redisKey);
+        if (storedVerifyCodeObj == null) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, VERIFY_CODE_EXPIRED);
+        }
+        String storedVerifyCode = String.valueOf(storedVerifyCodeObj);
+        if (!verifyCode.equals(storedVerifyCode)) {
+            throw new BusinessException(ErrorCode.PARAM_ERROR, VERIFY_CODE_INVALID);
+        }
+        // 校验通过后删除验证码
+        redisTemplate.delete(redisKey);
+        // 账户名不能有重复
+        QueryWrapper<User> queryWrapper = new QueryWrapper<>();
+        queryWrapper.eq("user_account", userAccount);
+        long count = this.count(queryWrapper);
+        if (count > 0) {
+            log.info("用户账户名已存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, USER_ACCOUNT_DUPLICATE);
+        }
+        // 邮箱不能重复
+        QueryWrapper<User> emailQueryWrapper = new QueryWrapper<>();
+        emailQueryWrapper.eq("email", email);
+        long emailCount = this.count(emailQueryWrapper);
+        if (emailCount > 0) {
+            log.info("邮箱已存在");
+            throw new BusinessException(ErrorCode.PARAM_ERROR, "邮箱已存在");
+        }
+        // 将密码加密
+        String encodePassword = DigestUtils.md5Hex(password);
+        // 插入用户数据
+        User user = new User();
+        user.setUserAccount(userAccount);
+        user.setPassword(encodePassword);
+        user.setEmail(email);
+        user.setCreateTime(LocalDateTime.now());
+        user.setUpdateTime(LocalDateTime.now());
+        boolean result = this.save(user);
+        if (!result) {
+            throw new BusinessException(ErrorCode.DATABASE_ERROR, DATABASE_INSERT_FAILED);
+        }
+        // 添加ak,sk
+        Long userId = user.getId();
+        Integer payDays = 30;
+        GenerateAkSkRequest generateAkSkRequest = new GenerateAkSkRequest(userId, payDays);
+        userPaymentAkSkService.payAndGenerateAkSk(generateAkSkRequest);
+        log.info("用户注册成功（邮箱验证），email: {}", email);
         return userId;
     }
 

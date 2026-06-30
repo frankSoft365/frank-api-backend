@@ -40,17 +40,17 @@ public class UserController {
     @PostMapping("/register")
     public Result<Long> userRegister(@RequestBody UserRegisterRequest userRegisterRequest) {
         if (userRegisterRequest == null) {
-            // 参数为空错误
             throw new BusinessException(ErrorCode.PARAM_ERROR, PARAM_EMPTY);
         }
         String userAccount = userRegisterRequest.getUserAccount();
         String password = userRegisterRequest.getPassword();
         String checkPassword = userRegisterRequest.getCheckPassword();
+        String email = userRegisterRequest.getEmail();
+        String verifyCode = userRegisterRequest.getVerifyCode();
         if (StringUtils.isAllBlank(userAccount, password, checkPassword)) {
-            // 参数为空串
             throw new BusinessException(ErrorCode.PARAM_ERROR, CREDENTIAL_INCOMPLETE);
         }
-        Long userId = userService.userRegister(userAccount, password, checkPassword);
+        Long userId = userService.userRegister(userAccount, password, checkPassword, email, verifyCode);
         return Result.success(userId);
     }
 

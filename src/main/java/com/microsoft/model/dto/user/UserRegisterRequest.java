@@ -11,4 +11,6 @@ public class UserRegisterRequest {
     private String userAccount;
     private String password;
     private String checkPassword;
+    private String email;
+    private String verifyCode;
 }

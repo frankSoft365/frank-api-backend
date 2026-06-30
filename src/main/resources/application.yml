@@ -15,6 +15,11 @@ spring:
     multipart:
       max-file-size: 5MB  # 单个文件最大限制
       max-request-size: 10MB # 单次请求最大限制
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      timeout: 10000ms
 # mybatis-plus 配置
 mybatis-plus:
   global-config:
@@ -38,7 +43,10 @@ avatar:
 # frank-api-gateway 配置
 frank:
   api:
-    gateway:
+    # frankapi-client 平台账号配置(用于调用平台邮件服务发送验证码)
+    client:
+      accessKeyId: 20229291381rUATJx
+      accessKeySecret: Pwc4dS3eCXT6aWGBKBCXFTJuSAAKBzut
       baseUrl: http://localhost:8123
 # nacos : d9cbCuZmnFsI 7vPLGAh8DVlL sh startup.sh -m standalone
 # dubbo配置

@@ -1,14 +1,35 @@
-# DataSource Config
 spring:
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: jdbc:mysql://192.168.41.130:3306/yuzhou
-    username: root
-    password: 12345
+    url: jdbc:mysql://${DB_HOST:localhost}:${DB_PORT:3306}/${DB_NAME:frank-api}?useSSL=false&serverTimezone=Asia/Shanghai&allowPublicKeyRetrieval=true
+    username: ${DB_USERNAME:root}
+    password: ${DB_PASSWORD:12345678}
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
+      timeout: 10000ms
 server:
-  port: 8080
-# frank-api-gateway 配置
+  port: ${SERVER_PORT:8080}
 frank:
   api:
     gateway:
-      baseUrl: http://localhost:8123
+      baseUrl: ${FRANK_API_GATEWAY_BASE_URL:http://localhost:8123}
+    client:
+      accessKeyId: ${FRANK_CLIENT_AK:please-replace-with-your-ak}
+      accessKeySecret: ${FRANK_CLIENT_SK:please-replace-with-your-sk}
+      baseUrl: ${FRANK_CLIENT_BASE_URL:http://localhost:8123}
+
+dubbo:
+  registry:
+    address: nacos://${NACOS_HOST:nacos}:${NACOS_PORT:8848}
+    register-mode: instance
+  protocol:
+    name: tri
+    port: 50051
+  application:
+    qos-enable: true
+    name: frank-api
+    qos-port: 22222
+    qos-accept-foreign-ip: false
+    logger: slf4j

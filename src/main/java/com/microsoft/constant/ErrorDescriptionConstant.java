@@ -45,4 +45,11 @@ public class ErrorDescriptionConstant {
     public static final String DATABASE_INSERT_FAILED = "添加失败";
     public static final String DATABASE_UPDATE_FAILED = "修改失败";
 
+    public static final String EMAIL_EMPTY = "邮箱不能为空";
+    public static final String EMAIL_FORMAT_INVALID = "邮箱格式不合法";
+    public static final String EMAIL_SEND_FAILED = "验证码发送失败，请稍后重试";
+
+    public static final String VERIFY_CODE_EMPTY = "验证码不能为空";
+    public static final String VERIFY_CODE_EXPIRED = "验证码已过期，请重新获取";
+    public static final String VERIFY_CODE_INVALID = "验证码不正确";
 }

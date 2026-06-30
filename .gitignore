@@ -31,3 +31,15 @@ build/
 
 ### VS Code ###
 .vscode/
+
+### Docker ###
+.env
+mysql-data/
+redis-data/
+nacos-data/
+nacos-logs/
+
+### JAR files ###
+*.jar
+interface/*.jar
+gateway/*.jar

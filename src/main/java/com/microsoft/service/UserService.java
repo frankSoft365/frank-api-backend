@@ -18,6 +18,11 @@ public interface UserService extends IService<User> {
     Long userRegister(String userAccount, String password, String checkPassword);
 
     /**
+     * 用户注册（带邮箱验证码）校验账户名、密码、邮箱和验证码 将用户存入数据库 返回用户的id
+     */
+    Long userRegister(String userAccount, String password, String checkPassword, String email, String verifyCode);
+
+    /**
      * 用户登录 校验账户名 密码是否合法 根据账户名查询用户密码比对 相同则成功
      */
     UserLoginVO userLogin(String userAccount, String password);
